@@ -1,0 +1,8 @@
+pandas
+numpy
+pyarrow
+fsspec
+aiohttp
+requests
+matplotlib
+openpyxl
