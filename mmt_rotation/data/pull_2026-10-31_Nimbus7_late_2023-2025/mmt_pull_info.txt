@@ -1,0 +1,7 @@
+Dataset: https://huggingface.co/datasets/kyselica/MMT_snapshot
+Pulled: 2026-10-31 00:42 UTC
+Snapshot revision (commit): 2e2194c608897a420bafa61b8d14fd56130a55de
+Snapshot last modified: 2025-09-02T06:03:50.000Z
+NORAD IDs: 11080
+Python 3.14.7, pandas 3.0.6, numpy 2.5.4
+Plots: years 2023 to 2025, up to 20 tracks per object per year (mmt_years.py, separate from the main dataset pull)

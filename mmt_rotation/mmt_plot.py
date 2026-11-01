@@ -1,13 +1,3 @@
-"""Plot MMT light curves for the factor-of-2 check.
-
-    py mmt_plot.py 47858 7924 --summary data/pull_2026-10-24/mmt_summary.csv --out data/pull_2026-10-24/plots
-
-For each object it plots the latest tracks (default 5) with a period from the same year that
-mmt_check.py used for the median. With --summary the year is read from that file, so the plots
-match the recorded pull. Each PNG has 4 panels: raw light curve, then folded at P/2, P and 2P.
-Two unequal peaks per cycle at P means P is the full rotation; one clean peak means the true
-period could be 2P.
-"""
 import argparse
 import re
 import time
@@ -140,7 +130,9 @@ def main():
     p.add_argument("ids", nargs="+", type=int, help="NORAD IDs")
     p.add_argument("--summary", help="mmt_summary.csv to take the year from")
     p.add_argument("--out", default="mmt_plots", help="folder for the PNGs")
-    p.add_argument("--max", type=int, default=5, help="tracks to plot per object")
+    p.add_argument("--max", type=int, default=5, help="tracks to plot per object (per year with --years)")
+    p.add_argument("--years", nargs="+", type=int,
+                   help="plot these years instead of the latest year (overrides --summary)")
     a = p.parse_args()
     out = Path(a.out)
 
@@ -164,26 +156,28 @@ def main():
         if g.empty:
             print(f"\nNORAD {i}: {total} tracks, none with a period, nothing to plot")
             continue
-        if a.summary:
+        if a.years:
+            plan = [(y, None) for y in a.years]
+        elif a.summary:
             if i not in recorded:
                 print(f"\nNORAD {i}: no latest_year in {a.summary}, skipped")
                 continue
-            year, n_rec = recorded[i]
+            plan = [recorded[i]]
         else:
-            year, n_rec = int(g["_year"].max()), None
-        g = g[g["_year"] == year]
-        if n_rec is not None and len(g) != n_rec:
-            print(f"  WARNING: {len(g)} tracks with a period in {year}, summary has {n_rec} "
-                  f"(snapshot may have changed)")
-        sel = g.tail(a.max)
-        print(f"\nNORAD {i}: {total} tracks, {len(g)} with a period in {year}, plotting {len(sel)}")
-        for _, row in sel.iterrows():
-            safe = re.sub(r"[^A-Za-z0-9]+", "_", str(row["name"])).strip("_")
-            stamp = re.sub(r"[^0-9]", "", str(row["timestamp"]))[:14]
-            path = out / f"{i}_{safe}_{year}_{stamp}.png"
-            cycles, note = plot_track(row, path)
-            print(f"  saved {path} ({cycles:.1f} cycles){note}")
-
+            plan = [(int(g["_year"].max()), None)]
+        for year, n_rec in plan:
+            gy = g[g["_year"] == year]
+            if n_rec is not None and len(gy) != n_rec:
+                print(f"  WARNING: {len(gy)} tracks with a period in {year}, summary has {n_rec} "
+                      f"(snapshot may have changed)")
+            sel = gy.tail(a.max)
+            print(f"\nNORAD {i}: {total} tracks, {len(gy)} with a period in {year}, plotting {len(sel)}")
+            for _, row in sel.iterrows():
+                safe = re.sub(r"[^A-Za-z0-9]+", "_", str(row["name"])).strip("_")
+                stamp = re.sub(r"[^0-9]", "", str(row["timestamp"]))[:14]
+                path = out / f"{i}_{safe}_{year}_{stamp}.png"
+                cycles, note = plot_track(row, path)
+                print(f"  saved {path} ({cycles:.1f} cycles){note}")
 
 if __name__ == "__main__":
     main()
