@@ -30,6 +30,7 @@ py -m pip install -r requirements.txt
 | `mmt_plot.py` | Plots the latest-year light curves: raw, and folded at P/2, P and 2P |
 | `mmt_years.py` | Pulls and plots chosen NORAD IDs for a range of years into a separate pull folder |
 | `fill_lightcurve.py` | Copies `mmt_summary.csv` into the Light curve tab of the workbook (makes a backup first) |
+| `left_out_folds.csv` | The folds every figure leaves out, with the reason (see Method below and `figures/README.md`) |
 | `archive/` | The older versions used for the week 2 pulls |
 
 ## Running a pull
@@ -40,7 +41,7 @@ From the `mmt_rotation` folder in PowerShell:
 $ids = "47858 7924 ...".Split(" ")   # NORAD IDs from the Master tab (full list in data/pull_2026-10-24/mmt_pull_info.txt)
 py mmt_check.py @ids --out data/pull_YYYY-MM-DD
 py mmt_plot.py @ids --summary data/pull_YYYY-MM-DD/mmt_summary.csv --out data/pull_YYYY-MM-DD/plots
-py fill_lightcurve.py ..\..\HARMONIA_data_vN.xlsx data\pull_YYYY-MM-DD\mmt_summary.csv
+py fill_lightcurve.py ..\..\HARMONIA_data_v2.xlsx data\pull_YYYY-MM-DD\mmt_summary.csv
 ```
 
 Close the workbook in Excel before the last step. Use a new `data/pull_YYYY-MM-DD` folder for each
@@ -79,13 +80,20 @@ own; it overrides `--summary`.
   (half the real period). The rest are real spin-ups or slow-downs. What I decided for each one is in
   the Factor-of-2 comments column of the Light curve tab. Where I couldn't tell, I listed the
   candidate periods there instead of picking one.
+- Left-out folds: the two fold errors above, the Nimbus 7 Jul 2018 track (doesn't fold cleanly) and
+  the TOMS-EP 2024-2025 harmonics are listed in `left_out_folds.csv`. Every figure reads that one
+  list, so they all leave out the same tracks. It doesn't change the workbook values.
 - Track length = last sample time minus first, in seconds.
 - Below detection limit: the object has tracks but none of them gives a period. That means it's
   either slower than the limit or not rotating periodically at all (attitude-stable, tumbling with no
-  clean period, or too faint). A period can only be measured if at least one full rotation fits in a
-  track, so the limit is 360 / track length. The workbook has two: one from the median track
-  (about 4 to 12 deg/s) and one from the longest track (1.2 to 4.6 deg/s). The longest-track one is
-  the real upper limit and is the one the figures use.
+  clean period, or too faint).
+- Detection limit: a period only shows when enough of a rotation fits in a track. In this pull the
+  fewest cycles behind any period is 1.21, and 95% of periods have at least 1.9, so the limit is
+  1.2 x 360 / track length. The workbook has two:
+  - from the longest track: 1.4 to 5.5 deg/s. This is the real upper limit and the one the figures use.
+  - from the median track: about 5.1 to 14.2 deg/s (looser).
+
+  With the typical 1.9 cycles instead of 1.2, the longest-track limits are 2.2 to 8.7 deg/s.
 
 ## Output files
 
@@ -105,6 +113,7 @@ mmt_rotation/
 ├── mmt_plot.py
 ├── mmt_years.py
 ├── fill_lightcurve.py
+├── left_out_folds.csv            folds the figures leave out
 ├── requirements.txt
 ├── archive/                      old script versions
 └── data/

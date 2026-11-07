@@ -12,9 +12,15 @@ from matplotlib.lines import Line2D
 from matplotlib.legend_handler import HandlerTuple
 from matplotlib.patches import Patch
 
-from style import apply_style, GROUP_COLOR, SCOPE_LABEL, SCOPE_ORDER, TYPE_LABEL, TYPE_SCALE, marker_for, INK, MUTED, GRID
+import left_out
+from style import apply_style, GROUP_COLOR, SCOPE_LABEL, SCOPE_ORDER, TYPE_LABEL, TYPE_SCALE, marker_for, INK, MUTED, GRID, plot_path, legend_top
 
 TASK_BAND = (2.0, 5.0)  # deg/s from the task sheet
+# A period only shows when at least 1.2 cycles fit in a track (smallest in the pull: 1.21, Fig 6), so the
+# upper limit is 1.2 x 360 / L_max. 95% of periods have at least 1.9 cycles, so 1.9 is the typical case.
+# Same factor as the detection limit formulas on the Light curve tab.
+CYCLES = 1.2
+CYCLES_TYPICAL = 1.9
 SHOW = ("In scope", "Near scope", "Orbit out", "Rocket body", "Reference (out of scope)")
 BASELINE = 0.8
 DROP = 1.32
@@ -50,8 +56,6 @@ def read_workbook(path):
         o["med_len"] = lc.cell(r, LC["Median track length (s)"]).value
         o["max_len"] = lc.cell(r, LC["Max track length (s)"]).value
         o["n_period"] = lc.cell(r, LC["Tracks with a period"]).value or 0
-        o["by_hand"] = str(lc.cell(r, LC["Latest-year values set by hand"]).value or "").strip().lower() == "yes"
-        o["hand_year"] = lc.cell(r, LC["Latest year with a period"]).value
     return objs
 
 
@@ -141,7 +145,7 @@ def place_line_labels(fig, ax, labels, obstacles):
             print("  no clear spot for label:", txt)
 
 
-def draw(objs, t, out, part="all", xlim=(-1, 58), ylim=(0.26, 115), title=None):
+def draw(objs, t, out, part="all", xlim=(-1, 58), ylim=(0.26, 115), notes=()):
     apply_style()
     fig, ax = plt.subplots(figsize=(7.0, 5.6))
     ax.set_yscale("log")
@@ -160,11 +164,8 @@ def draw(objs, t, out, part="all", xlim=(-1, 58), ylim=(0.26, 115), title=None):
         tr = t[t["norad_id"] == nid]
         per = tr[tr["has_period"]]
         if len(per) and part != "limits":
-            used, harm = per, per.iloc[0:0]
-            # TOMS-EP: years after the hand-set year are harmonics, show them hollow
-            if o.get("by_hand") and o.get("hand_year"):
-                used = per[per["year"] <= o["hand_year"]]
-                harm = per[per["year"] > o["hand_year"]]
+            # folds on the left-out list (mmt_rotation/left_out_folds.csv) are hollow and not in the line
+            used, harm = per[~per["left_out"]], per[per["left_out"]]
             ax.scatter(used["decyear"] - o["eol"], used["deg_per_s"], s=3.5, color=col, alpha=0.18,
                        lw=0, zorder=2)
             yr = used.groupby("year").agg(x=("decyear", "median"), p=("period_s", "median")).reset_index()
@@ -179,13 +180,17 @@ def draw(objs, t, out, part="all", xlim=(-1, 58), ylim=(0.26, 115), title=None):
             if len(harm):
                 ax.scatter(harm["decyear"] - o["eol"], harm["deg_per_s"], s=11, facecolor="none",
                            edgecolor=col, lw=0.6, alpha=0.7, zorder=2)
-                hx, hy = (harm["decyear"] - o["eol"]).max(), harm["deg_per_s"].max()
-                if xlim[0] <= hx <= xlim[1] and ylim[0] <= hy <= ylim[1]:
-                    right = hx > xlim[0] + 0.6 * (xlim[1] - xlim[0])
-                    obstacles.append(ax.annotate(f"{o['name']} 2024–25: harmonics, not used", (hx, hy),
-                                                 xytext=(-6 if right else 5, 4), textcoords="offset points",
-                                                 fontsize=6.2, color=MUTED, va="bottom",
-                                                 ha="right" if right else "left"))
+                for w_id, d0, d1, note in notes:
+                    hw = harm[harm["date"].between(d0, d1)]
+                    if w_id != nid or hw.empty:
+                        continue
+                    hx, hy = (hw["decyear"] - o["eol"]).max(), hw["deg_per_s"].max()
+                    if xlim[0] <= hx <= xlim[1] and ylim[0] <= hy <= ylim[1]:
+                        right = hx > xlim[0] + 0.6 * (xlim[1] - xlim[0])
+                        obstacles.append(ax.annotate(f"{o['name']} {note}", (hx, hy),
+                                                     xytext=(-6 if right else 5, 4), textcoords="offset points",
+                                                     fontsize=6.2, color=MUTED, va="bottom",
+                                                     ha="right" if right else "left"))
             vis = np.where((xs >= xlim[0]) & (xs <= xlim[1]))[0]
             if len(vis):
                 i = vis[-1]
@@ -193,8 +198,8 @@ def draw(objs, t, out, part="all", xlim=(-1, 58), ylim=(0.26, 115), title=None):
         elif not len(per) and part != "periods" and o.get("med_len") and o.get("max_len"):
             x = tr["decyear"].max() - o["eol"]
             if xlim[0] <= x <= xlim[1]:
-                arrows.append(dict(x=x, hi=360 / o["med_len"], lo=360 / o["max_len"], name=o["name"], col=col,
-                                   mk=mk, ms=ms))
+                arrows.append(dict(x=x, hi=CYCLES_TYPICAL * 360 / o["max_len"], lo=CYCLES * 360 / o["max_len"],
+                                   name=o["name"], col=col, mk=mk, ms=ms))
 
     for a in arrows:
         if part == "limits":
@@ -230,12 +235,11 @@ def draw(objs, t, out, part="all", xlim=(-1, 58), ylim=(0.26, 115), title=None):
     ticks = [v for v in (1, 2, 5, 10, 20, 50, 100) if ylim[0] <= v <= ylim[1]]
     ax.set_yticks(ticks)
     ax.set_yticklabels([f"{v:g}" for v in ticks])
+    ax.minorticks_off()
     ax.set_xlabel("Years since end of life")
-    ax.set_ylabel(r"Rotation rate $\omega$ (°/s)")
+    ax.set_ylabel(r"Rotation rate, $\omega$ (°/s)")
     ax.grid(True, which="major", axis="y", color=GRID, lw=0.5)
     ax.set_axisbelow(True)
-    if title:
-        ax.set_title(title, fontsize=8.5, color=INK, loc="left", pad=4)
 
     shown = [o for o in objs.values() if o["group"] in SHOW]
     if part == "periods":
@@ -253,20 +257,21 @@ def draw(objs, t, out, part="all", xlim=(-1, 58), ylim=(0.26, 115), title=None):
         handles.append(Line2D([], [], color=MUTED, lw=0, marker=mk, ms=5.6 * TYPE_SCALE[mk], mew=0,
                               label=TYPE_LABEL[mk]))
     if part != "limits":
-        handles += [Line2D([], [], color=MUTED, lw=0, marker="o", ms=2.2, alpha=0.5, label="Single MMT track"),
-                    Line2D([], [], color=MUTED, lw=0.7, ls=(0, (2.5, 2)), label="Years with no period")]
+        handles += [Line2D([], [], color=MUTED, lw=0, marker="o", ms=2.2, alpha=0.5, label="Single light curve"),
+                    Line2D([], [], color=MUTED, lw=0, marker="o", ms=3.2, mfc="none", mew=0.6,
+                           label="Excluded period (not in the line)"),
+                    Line2D([], [], color=MUTED, lw=0.7, ls=(0, (2.5, 2)), label="Gap of a year or more with no period")]
     if part != "periods":
         handles += [(Line2D([], [], color=MUTED, lw=0, marker="o", ms=5.6, mew=0),
                      Line2D([], [], color=MUTED, lw=0, marker=r"$\downarrow$", ms=7))]
         if part == "limits":
             handles += [Line2D([], [], color=MUTED, lw=0, marker="o", ms=4.6, mfc="none", mew=0.9,
-                               label=r"Looser limit from the median track, $360/\tilde{L}$")]
-        handles += [Patch(facecolor=GRID, alpha=0.9, edgecolor="none", label="Task-sheet band, 2–5 °/s")]
-    labels = [h.get_label() if not isinstance(h, tuple) else r"No period: upper limit $360/L_{\max}$"
+                               label=rf"Typical limit, ${CYCLES_TYPICAL:g} \times 360/L_{{\max}}$")]
+        handles += [Patch(facecolor=GRID, alpha=0.9, edgecolor="none", label="Assumed rotation range, 2–5 °/s")]
+    labels = [h.get_label() if not isinstance(h, tuple) else rf"No period detected: upper limit ${CYCLES:g} \times 360/L_{{\max}}$"
               for h in handles]
-    ax.legend(handles=handles, labels=labels, loc="upper center", bbox_to_anchor=(0.5, -0.1), fontsize=7.0,
-              frameon=False, ncol=4 if part == "all" else 3, handlelength=1.8, columnspacing=1.4,
-              handler_map={tuple: HandlerTuple(ndivide=None, pad=0.1)})
+    legend_top(ax, handles, 4 if part == "all" else 3, labels=labels,
+               handler_map={tuple: HandlerTuple(ndivide=None, pad=0.1)})
     place_line_labels(fig, ax, line_lab, obstacles)
     fig.savefig(out, dpi=300)
     plt.close(fig)
@@ -279,21 +284,23 @@ def main():
     p.add_argument("tracks", type=Path, help="mmt_tracks.csv from the data pull")
     p.add_argument("--part", choices=("all", "periods", "limits"), default="all")
     p.add_argument("--out", type=Path)
+    p.add_argument("--left-out", type=Path, help="list of left-out folds (default: mmt_rotation/left_out_folds.csv)")
     a = p.parse_args()
 
     objs = read_workbook(a.workbook)
     t = pd.read_csv(a.tracks, parse_dates=["date"])
     t = t[t["norad_id"].isin(objs)]
     t["decyear"] = t["date"].dt.year + (t["date"].dt.dayofyear - 0.5) / 365.25
-    here = Path(__file__)
+    t = left_out.mark(t, a.left_out)
+    nt = left_out.notes(a.left_out)
     if a.part == "periods":
-        draw(objs, t, a.out or here.with_name("fig2_periods.png"), "periods", xlim=(-1, 45), ylim=(4.5, 125),
-             title="Objects with a measured period")
+        draw(objs, t, a.out or plot_path("fig2_periods.png"), "periods", xlim=(-1, 45), ylim=(4.5, 125),
+             notes=nt)
     elif a.part == "limits":
-        draw(objs, t, a.out or here.with_name("fig2_limits.png"), "limits", xlim=(-1, 58), ylim=(0.8, 14),
-             title="Objects with no period: detection limits")
+        draw(objs, t, a.out or plot_path("fig2_limits.png"), "limits", xlim=(-1, 58), ylim=(0.8, 14),
+             notes=nt)
     else:
-        draw(objs, t, a.out or here.with_name("fig2_rate.png"), "all")
+        draw(objs, t, a.out or plot_path("fig2_rate.png"), "all", notes=nt)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,5 @@
+norad_id,name,from_date,to_date,reason,figure_note
+23233,DMSP 5D-2 F12,2016-12-01,2017-01-31,"Dec 2016 and Jan 2017 periods (about 12 s) are a whole multiple of the real cycle: folded at P they show eight identical cycles",
+11080,Nimbus 7,2018-07-01,2018-07-31,"Jul 2018 track (29.2 s) does not fold cleanly at P/2, P or 2P",
+23940,TOMS-EP,2016-08-01,2016-08-31,"Aug 2016 period (16.1 s) is half the real period",
+23940,TOMS-EP,2024-01-01,2025-12-31,"2024 (6.6 s) and 2025 (4.56 s) periods are harmonics of the 2018-2023 period (one fade per cycle); the workbook uses 2018-2023","2024–25: harmonics, excluded"

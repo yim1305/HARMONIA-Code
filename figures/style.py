@@ -1,4 +1,15 @@
+from pathlib import Path
+
 import matplotlib as mpl
+
+# every figure is saved here; last week's versions are in plots/archive
+PLOTS = Path(__file__).resolve().parent / "plots"
+
+
+def plot_path(name):
+    PLOTS.mkdir(exist_ok=True)
+    return PLOTS / name
+
 
 INK = "#1f1f1d"
 MUTED = "#6b6a66"
@@ -13,11 +24,11 @@ GROUP_COLOR = {
 }
 # Jason 1/2 fail on orbit and CZ-4C on mass, so they share one colour
 SCOPE_LABEL = {
-    "In scope": "In scope",
-    "Near scope": "Near scope",
-    "Orbit out": "Out of range (orbit or mass)",
-    "Rocket body": "Out of range (orbit or mass)",
-    "Reference (out of scope)": "Reference",
+    "In scope": "Within mass and orbit limits",
+    "Near scope": "Wet mass just over 1,000 kg",
+    "Orbit out": "Outside mass or orbit limits",
+    "Rocket body": "Outside mass or orbit limits",
+    "Reference (out of scope)": "Reference object",
 }
 SCOPE_ORDER = ["In scope", "Near scope", "Orbit out", "Reference (out of scope)"]
 
@@ -54,3 +65,18 @@ def apply_style():
         "savefig.pad_inches": 0.03,
         "figure.dpi": 150,
     })
+
+
+# One legend style for every figure: above the plot, no frame, same font and spacing.
+LEGEND_FS = 7.0
+
+
+def legend_top(target, handles, ncol, labels=None, y=1.02, **kw):
+    """Legend centred just above an axes (or a whole figure, for the panel figures)."""
+    opts = dict(loc="lower center", bbox_to_anchor=(0.5, y), ncol=ncol, fontsize=LEGEND_FS, frameon=False,
+                handlelength=1.8, handletextpad=0.6, columnspacing=1.5, borderaxespad=0.0)
+    opts.update(kw)
+    if labels is not None:
+        return target.legend(handles=handles, labels=labels, **opts)
+    return target.legend(handles=handles, **opts)
+

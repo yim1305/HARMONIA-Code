@@ -1,8 +1,3 @@
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))  # so style.py and fig2_rate.py import
-
 import openpyxl
 import pandas as pd
 
@@ -37,7 +32,10 @@ def read_master(path):
     for r in range(2, 62):
         if isinstance(rp.cell(r, RH["NORAD ID"]).value, int):
             rr.append({h: rp.cell(r, c).value for h, c in RH.items()})
-    R = pd.DataFrame(rr)[["NORAD ID", "r_P full (m)", "r⊥ low (m)", "r⊥ high (m)"]]
+    keep = ["NORAD ID", "r_P full (m)", "r⊥ low (m)", "r⊥ high (m)"]
+    if "Likely spin state (from moments of inertia)" in RH:
+        keep.append("Likely spin state (from moments of inertia)")
+    R = pd.DataFrame(rr)[keep]
     M = M.merge(R, on="NORAD ID", how="left", suffixes=("_m", ""))
     for c in NUMERIC:
         M[c] = pd.to_numeric(M[c], errors="coerce")

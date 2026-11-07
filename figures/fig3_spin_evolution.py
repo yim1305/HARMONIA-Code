@@ -1,5 +1,4 @@
 import argparse
-from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")
@@ -9,23 +8,25 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
 from common import read_master, read_tracks
-from style import apply_style, GROUP_COLOR, INK, MUTED, GRID, marker_for
+import left_out
+from style import apply_style, GROUP_COLOR, INK, MUTED, GRID, marker_for, plot_path, legend_top
 
-# NORAD id, years to fit, windows to leave out
+# NORAD id, years to fit. Left-out folds come from mmt_rotation/left_out_folds.csv (left_out.py).
 PANELS = [
-    (21263, (2014, 2023), []),                 # NOAA 12
-    (25758, (2014, 2019), []),                 # IRS-P4
-    (19531, (2014, 2017), []),                 # NOAA 11
-    (23455, (2014, 2020), []),                 # NOAA 14
-    (11060, (2014, 2016), []),                 # TIROS-N
-    (23233, (2018, 2025), [(2016.9, 2017.1)]),  # DMSP F12, Dec 2016-Jan 2017 folds are too long
-    (4362, (2016, 2021), []),                  # Nimbus 4
-    (22739, None, []),                         # NOAA 13
-    (16969, (2017, 2020), []),                 # NOAA 10
-    (13923, None, []),                         # NOAA 8
-    (11080, None, [(2018.4, 2018.6)]),         # Nimbus 7, Jul 2018 doesn't fold cleanly
-    (22076, (2014, 2022), []),                 # TOPEX
+    (21263, (2014, 2023)),  # NOAA 12
+    (25758, (2014, 2019)),  # IRS-P4
+    (19531, (2014, 2017)),  # NOAA 11
+    (23455, (2014, 2020)),  # NOAA 14
+    (11060, (2014, 2016)),  # TIROS-N
+    (23233, (2018, 2025)),  # DMSP F12
+    (4362, (2016, 2021)),   # Nimbus 4
+    (22739, None),          # NOAA 13
+    (16969, (2017, 2020)),  # NOAA 10
+    (13923, None),          # NOAA 8
+    (11080, None),          # Nimbus 7
+    (22076, (2014, 2022)),  # TOPEX
 ]
+MIN_FIT = 4  # fits with fewer yearly points than this are drawn lighter and marked "indicative"
 NOTE = {16969: "spin-up from 2021", 22739: "accelerating spin-down", 13923: "slowed 2017–18, then spun up",
         11080: "spinning up", 22076: "spin-up, then flat"}
 BAND = (2.0, 5.0)
@@ -35,22 +36,21 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("workbook")
     ap.add_argument("tracks")
-    ap.add_argument("--out", default=str(Path(__file__).with_name("fig3_spin_evolution.png")))
+    ap.add_argument("--out", default=str(plot_path("fig3_spin_evolution.png")))
+    ap.add_argument("--left-out", help="list of left-out folds (default: mmt_rotation/left_out_folds.csv)")
     a = ap.parse_args()
     M = read_master(a.workbook).set_index("NORAD ID")
-    t = read_tracks(a.tracks)
+    t = left_out.mark(read_tracks(a.tracks), a.left_out)
 
     apply_style()
-    fig, axs = plt.subplots(3, 4, figsize=(7.0, 5.6), sharex=True, sharey=True)
-    for ax, (nid, win, left_out) in zip(axs.flat, PANELS):
+    fig, axs = plt.subplots(3, 4, figsize=(7.0, 5.9), sharex=True, sharey=True)
+    for ax, (nid, win) in zip(axs.flat, PANELS):
         o = M.loc[nid]
         col, mk = GROUP_COLOR[o["Dataset group"]], marker_for(o["Object type"])
         x = t[t.norad_id == nid]
         p = x[x.has_period].copy()
         p["rate"] = 360 / p.period_s
-        out = np.zeros(len(p), bool)
-        for h0, h1 in left_out:
-            out |= (p.dec >= h0) & (p.dec < h1)
+        out = p.left_out.to_numpy()
 
         ax.axhspan(*BAND, color=GRID, alpha=0.55, lw=0, zorder=0)
         ax.scatter(p.dec[~out], p.rate[~out], s=4, color=col, alpha=0.25, lw=0, zorder=2)
@@ -65,11 +65,16 @@ def main():
             w = q[(q.index >= win[0]) & (q.index <= win[1])]
             s, c = np.polyfit(w.dec, np.log(w.rate), 1)
             xx = np.linspace(w.dec.min(), w.dec.max(), 50)
-            ax.plot(xx, np.exp(c + s * xx), color=INK, lw=0.8, ls=(0, (3, 2)), zorder=5)
+            weak = len(w) < MIN_FIT
+            ax.plot(xx, np.exp(c + s * xx), color=MUTED if weak else INK, lw=0.8, ls=(0, (1, 1.5)) if weak else (0, (3, 2)),
+                    zorder=5)
             if s < 0:
                 txt = rf"$\tau$ = {-1/s:.1f} yr" + (", then spin-up" if nid == 16969 else "")
             else:
                 txt = f"+{100*(np.exp(s)-1):.0f} %/yr" + (", then flat" if nid == 22076 else "")
+            if weak:
+                txt += f"\nindicative ({len(w)} yearly points)"
+            print(f"  {o['name']}: fit {win[0]}-{win[1]}, {len(w)} yearly points, {txt.splitlines()[0]}")
         for y in sorted(set(x.year) - set(p.year)):
             ax.plot([y + 0.5], [1.25], marker="|", ms=4, color=MUTED, mew=0.8)
 
@@ -84,17 +89,19 @@ def main():
         ax.grid(True, axis="y", color=GRID, lw=0.4)
         ax.set_axisbelow(True)
         ax.tick_params(labelsize=7)
+        ax.minorticks_off()
 
-    fig.supylabel("Rotation rate (°/s)", fontsize=9, x=0.01)
-    fig.supxlabel("Year of MMT track", fontsize=9, y=0.075)
     h = [Line2D([], [], marker="o", ms=3.6, color=MUTED, lw=0.9, label="Yearly median"),
-         Line2D([], [], marker="o", ms=2.5, color=MUTED, alpha=0.4, lw=0, label="Single track"),
-         Line2D([], [], marker="o", ms=3, mfc="none", mec=MUTED, lw=0, label="Left out (harmonic or no clean fold)"),
+         Line2D([], [], marker="o", ms=2.5, color=MUTED, alpha=0.4, lw=0, label="Single light curve"),
+         Line2D([], [], marker="o", ms=3, mfc="none", mec=MUTED, lw=0, label="Excluded period (not in the median)"),
          Line2D([], [], color=INK, lw=0.8, ls=(0, (3, 2)), label=r"Exponential fit, $\omega \propto e^{-t/\tau}$"),
-         Line2D([], [], marker="|", ms=5, color=MUTED, lw=0, mew=0.8, label="Tracks, no period"),
-         Patch(facecolor=GRID, alpha=0.9, label="Task-sheet band, 2–5 °/s")]
-    fig.legend(handles=h, loc="lower center", ncol=3, fontsize=7, frameon=False, bbox_to_anchor=(0.5, -0.005))
-    fig.tight_layout(rect=(0.02, 0.085, 1, 1), h_pad=0.6, w_pad=0.4)
+         Line2D([], [], color=MUTED, lw=0.8, ls=(0, (1, 1.5)), label=f"Fit on fewer than {MIN_FIT} yearly points (indicative)"),
+         Line2D([], [], marker="|", ms=5, color=MUTED, lw=0, mew=0.8, label="Observed, no period found"),
+         Patch(facecolor=GRID, alpha=0.9, label="Assumed rotation range, 2–5 °/s")]
+    fig.tight_layout(rect=(0.03, 0.015, 1, 0.9), h_pad=0.6, w_pad=0.4)
+    fig.supylabel(r"Rotation rate, $\omega$ (°/s)", fontsize=9, x=0.005)
+    fig.supxlabel("Year of observation", fontsize=9, y=0.0)
+    legend_top(fig, h, 3, y=0.905)
     fig.savefig(a.out, dpi=300)
     print("Saved", a.out)
 

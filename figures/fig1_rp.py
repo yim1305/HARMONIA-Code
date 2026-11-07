@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import openpyxl
 from matplotlib.lines import Line2D
 
-from style import apply_style, GROUP_COLOR, SCOPE_LABEL, SCOPE_ORDER, TYPE_LABEL, TYPE_SCALE, marker_for, INK, MUTED, GRID
+from style import apply_style, GROUP_COLOR, SCOPE_LABEL, SCOPE_ORDER, TYPE_LABEL, TYPE_SCALE, marker_for, INK, MUTED, GRID, plot_path, legend_top
 
 SHOW = ("In scope", "Near scope", "Orbit out", "Rocket body")
 SINGLE = "Single designs"
@@ -58,7 +58,7 @@ def read(path):
 def main():
     p = argparse.ArgumentParser(description="Fig 1: r_P per object, grouped by bus family")
     p.add_argument("workbook", type=Path)
-    p.add_argument("--out", type=Path, default=Path(__file__).with_name("fig1_rp.png"))
+    p.add_argument("--out", type=Path, default=plot_path("fig1_rp.png"))
     a = p.parse_args()
     rows, missing = read(a.workbook)
 
@@ -101,17 +101,17 @@ def main():
     ax.tick_params(axis="y", length=0, pad=4)
     ax.set_ylim(y - 0.5, -0.6)
     ax.set_xlim(0, max(o["hi"] for o in order) * 1.06)
-    ax.set_xlabel(r"Distance from the spin axis to the grab point (m)")
+    ax.set_xlabel(r"Grab-point distance, $r_\perp$ and $r_P$ (m)")
     ax.grid(True, axis="x", color=GRID, lw=0.5)
     ax.set_axisbelow(True)
     ax.spines["left"].set_visible(False)
 
     k = dict(lw=0, mew=1.1)
     handles = [
-        Line2D([], [], marker="o", ms=4.6, mfc="white", mec=MUTED, label=r"Left end: $r_{\perp,\mathrm{low}}$ (spin about the long axis)", **k),
-        Line2D([], [], marker="o", ms=5.6, mfc=MUTED, mew=0, lw=0, label=r"Filled: $r_{P}$ full (nominal $z$)"),
-        Line2D([], [], marker="o", ms=4.6, mfc="white", mec=MUTED, label=r"Right end: $r_{\perp,\mathrm{high}}$ (highest $z$, largest ring)", **k),
-        Line2D([], [], marker="o", ms=9.5, mfc="none", mec=MUTED, mew=0.8, lw=0, label="Ring: likely state from moments of inertia"),
+        Line2D([], [], marker="o", ms=4.6, mfc="white", mec=MUTED, label=r"Left end: $r_{\perp,\mathrm{low}}$ from the spin axis (spin about the long axis)", **k),
+        Line2D([], [], marker="o", ms=5.6, mfc=MUTED, mew=0, lw=0, label=r"Filled: $r_{P}$ from the centre of mass (nominal $z$)"),
+        Line2D([], [], marker="o", ms=4.6, mfc="white", mec=MUTED, label=r"Right end: $r_{\perp,\mathrm{high}}$ from the spin axis (highest $z$, largest ring)", **k),
+        Line2D([], [], marker="o", ms=9.5, mfc="none", mec=MUTED, mew=0.8, lw=0, label="Circle: likely spin state from moments of inertia"),
     ]
     blank = Line2D([], [], lw=0, alpha=0, label=" ")
     present = {o["group"] for o in order}
@@ -125,8 +125,7 @@ def main():
     for mk in sorted({marker_for(o["type"]) for o in order}, key=lambda m: m != "o"):
         handles.append(Line2D([], [], marker=mk, ms=5.6 * TYPE_SCALE[mk], mfc=MUTED, mew=0, lw=0, label=TYPE_LABEL[mk]))
     handles += [blank] * (12 - len(handles))
-    ax.legend(handles=handles, loc="lower center", bbox_to_anchor=(0.5, 1.005), ncol=3,
-              fontsize=7.0, frameon=False, handlelength=1.6, columnspacing=1.3)
+    legend_top(ax, handles, 3, y=1.01)
     fig.savefig(a.out, dpi=300)
     print(f"Saved {a.out}: {len(order)} objects in {len(blocks)} blocks")
     if missing:
