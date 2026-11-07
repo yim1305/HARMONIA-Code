@@ -109,7 +109,7 @@ def main():
     k = dict(lw=0, mew=1.1)
     handles = [
         Line2D([], [], marker="o", ms=4.6, mfc="white", mec=MUTED, label=r"Left end: $r_{\perp,\mathrm{low}}$ from the spin axis (spin about the long axis)", **k),
-        Line2D([], [], marker="o", ms=5.6, mfc=MUTED, mew=0, lw=0, label=r"Filled: $r_{P}$ from the centre of mass (nominal $z$)"),
+        Line2D([], [], marker="o", ms=5.6, mfc=MUTED, mew=0, lw=0, label=r"Filled: $r_{P}$ from the center of mass (nominal $z$)"),
         Line2D([], [], marker="o", ms=4.6, mfc="white", mec=MUTED, label=r"Right end: $r_{\perp,\mathrm{high}}$ from the spin axis (highest $z$, largest ring)", **k),
         Line2D([], [], marker="o", ms=9.5, mfc="none", mec=MUTED, mew=0.8, lw=0, label="Circle: likely spin state from moments of inertia"),
     ]

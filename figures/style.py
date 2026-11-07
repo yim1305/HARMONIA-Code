@@ -22,7 +22,7 @@ GROUP_COLOR = {
     "Rocket body": "#1baf7a",
     "Reference (out of scope)": "#a3a29d",
 }
-# Jason 1/2 fail on orbit and CZ-4C on mass, so they share one colour
+# Jason 1/2 fail on orbit and CZ-4C on mass, so they share one color
 SCOPE_LABEL = {
     "In scope": "Within mass and orbit limits",
     "Near scope": "Wet mass just over 1,000 kg",
@@ -72,7 +72,7 @@ LEGEND_FS = 7.0
 
 
 def legend_top(target, handles, ncol, labels=None, y=1.02, **kw):
-    """Legend centred just above an axes (or a whole figure, for the panel figures)."""
+    """Legend centered just above an axes (or a whole figure, for the panel figures)."""
     opts = dict(loc="lower center", bbox_to_anchor=(0.5, y), ncol=ncol, fontsize=LEGEND_FS, frameon=False,
                 handlelength=1.8, handletextpad=0.6, columnspacing=1.5, borderaxespad=0.0)
     opts.update(kw)

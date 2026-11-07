@@ -12,7 +12,7 @@ figures/
 ├── fig4_grab_accel.py       Fig 4: rotation rate vs r⊥, with lines of equal centripetal acceleration
 ├── fig5_timeline.py         Fig 5: which years each object gave a period
 ├── fig6_detection.py        Fig 6: period found vs track length (what MMT can measure)
-├── style.py                 fonts, colours, markers, legend style, and where plots are saved
+├── style.py                 fonts, colors, markers, legend style, and where plots are saved
 ├── common.py                reads the workbook and the tracks CSV (figs 3 to 6)
 ├── left_out.py              reads the list of left-out folds (figs 2, 3, 5, 6)
 └── plots/                   the current PNGs
@@ -24,10 +24,10 @@ figures/
 All six figures follow the same rules so they look like one set in the paper:
 
 - 7 in wide (full page width), 300 dpi, STIX serif font to match the paper text.
-- Legend above the plot, centred, no frame (`legend_top` in `style.py`). No titles inside the figures; that goes in the caption. Panel figures name each panel above it.
-- Same colours for scope everywhere (blue in scope, orange near scope, green out of range, grey reference), circles for satellites and triangles for rocket bodies.
+- Legend above the plot, centered, no frame (`legend_top` in `style.py`). No titles inside the figures; that goes in the caption. Panel figures name each panel above it.
+- Same colors for scope everywhere (blue in scope, orange near scope, green out of range, gray reference), circles for satellites and triangles for rocket bodies.
 - Axis labels are "Quantity, symbol (unit)", e.g. "Rotation rate, ω (°/s)". Log axes show plain numbers and no minor ticks.
-- The grey band is always the 2 to 5 °/s range from the task sheet, and left-out folds are always hollow.
+- The gray band is always the 2 to 5 °/s range from the task sheet, and left-out folds are always hollow.
 - Figure text only describes what's shown, for a reader with no project context: no internal terms like "task sheet", "fold", "track" or "in scope". The legend says "Assumed rotation range", "Excluded period", "Light curve" and "Within mass and orbit limits" instead; the caption explains the rest.
 
 ## Setup
@@ -69,9 +69,9 @@ The PNGs always go to `plots/`, wherever you run the scripts from. Add `--out pa
 
 ### Fig 1: grab-point distance (`fig1_rp.py` → `fig1_rp.png`)
 
-Each row is one object. The line runs from r⊥ low (left end, spin about the long axis) to r⊥ high (right end, highest z and largest ring). Both ends are measured **from the spin axis**. The filled dot is r_P full, measured **from the centre of mass**. A ring marks the likely spin state, which I only have for the objects with published moments of inertia (Nimbus and Landsat 1).
+Each row is one object. The line runs from r⊥ low (left end, spin about the long axis) to r⊥ high (right end, highest z and largest ring). Both ends are measured **from the spin axis**. The filled dot is r_P full, measured **from the center of mass**. A ring marks the likely spin state, which I only have for the objects with published moments of inertia (Nimbus and Landsat 1).
 
-Rows are grouped by bus family from the Master tab; a design with only one object goes under "Single designs". Colour is scope (In scope, Near scope, Out of range) and shape is object type (circle = satellite, triangle = rocket body). Reference and Not intact objects aren't shown, and anything without r_P yet is left out with its name printed.
+Rows are grouped by bus family from the Master tab; a design with only one object goes under "Single designs". Color is scope (In scope, Near scope, Out of range) and shape is object type (circle = satellite, triangle = rocket body). Reference and Not intact objects aren't shown, and anything without r_P yet is left out with its name printed.
 
 ![fig1_rp.png](plots/fig1_rp.png)
 
@@ -79,7 +79,7 @@ Rows are grouped by bus family from the Master tab; a design with only one objec
 
 Faint points are single MMT tracks with a period. Each object's line goes through its yearly medians, dashed across a gap of a year or more with no period. Hollow points are left-out folds (see *Left-out folds*); they aren't in the medians.
 
-Objects that never gave a period are upper limits: a dot at 1.2 × 360 / (longest track) with an arrow down, since the real rate must be slower (see *Detection limit*). Their names hang off one line at the bottom, and objects at the same x share a label. The grey band is the 2 to 5 °/s range from the task sheet.
+Objects that never gave a period are upper limits: a dot at 1.2 × 360 / (longest track) with an arrow down, since the real rate must be slower (see *Detection limit*). Their names hang off one line at the bottom, and objects at the same x share a label. The gray band is the 2 to 5 °/s range from the task sheet.
 
 ![fig2_rate.png](plots/fig2_rate.png)
 
@@ -89,7 +89,7 @@ Two supporting plots split Fig 2 so it's easier to read:
 
 ### Fig 3: spin evolution (`fig3_spin_evolution.py` → `fig3_spin_evolution.png`)
 
-Spin rate over time for the 12 objects with several years of periods, one panel each on the same log axis. The dashed line is an exponential fit over the spin-down years, labelled with its e-folding time τ (or % per year for a spin-up). Fits on fewer than 4 yearly points are dotted grey and labelled "indicative" (only TIROS-N, 3 points). Ticks along the bottom are years with tracks but no period. The fit years for each object are in `PANELS` at the top of the script.
+Spin rate over time for the 12 objects with several years of periods, one panel each on the same log axis. The dashed line is an exponential fit over the spin-down years, labeled with its e-folding time τ (or % per year for a spin-up). Fits on fewer than 4 yearly points are dotted gray and labeled "indicative" (only TIROS-N, 3 points). Ticks along the bottom are years with tracks but no period. The fit years for each object are in `PANELS` at the top of the script.
 
 ### Fig 4: grab-point acceleration (`fig4_grab_accel.py` → `fig4_grab_accel.png`)
 
@@ -99,7 +99,7 @@ The dotted lines are equal centripetal acceleration, a = ω²r⊥, at 1, 3, 10, 
 
 ### Fig 5: timeline (`fig5_timeline.py` → `fig5_timeline.png`)
 
-Which years each object gave a period in MMT, 2014 to 2025. Blue cells show that year's median rate in °/s, using only the kept folds. Grey = tracks but no period, blank = no tracks. `*` = some folds that year were left out; an outlined cell with a dash = all of them were. The % after each name is the share of tracks with a period.
+Which years each object gave a period in MMT, 2014 to 2025. Blue cells show that year's median rate in °/s, using only the kept folds. Gray = tracks but no period, blank = no tracks. `*` = some folds that year were left out; an outlined cell with a dash = all of them were. The % after each name is the share of tracks with a period.
 
 ### Fig 6: what MMT can measure (`fig6_detection.py` → `fig6_detection.png`)
 
