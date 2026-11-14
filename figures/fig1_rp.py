@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import openpyxl
 from matplotlib.lines import Line2D
 
-from style import apply_style, GROUP_COLOR, SCOPE_LABEL, SCOPE_ORDER, TYPE_LABEL, TYPE_SCALE, marker_for, INK, MUTED, GRID, plot_path, legend_top
+from style import FS, GRID_LW, save, apply_style, GROUP_COLOR, SCOPE_LABEL, SCOPE_ORDER, TYPE_LABEL, TYPE_SCALE, marker_for, INK, MUTED, GRID, plot_path, legend_top
 
 SHOW = ("In scope", "Near scope", "Orbit out", "Rocket body")
 SINGLE = "Single designs"
@@ -94,15 +94,15 @@ def main():
             ax.axhspan(h - 0.5, e + 0.5, color=BAND, lw=0, zorder=0)
         count = f"{e - h} designs" if b == SINGLE else f"{e - h} objects"
         ax.text(0.006, h, f"{b}  ·  {count}", transform=ax.get_yaxis_transform(), ha="left", va="center",
-                fontsize=7.4, color=INK, style="italic", zorder=5)
+                fontsize=FS["name"], color=INK, style="italic", zorder=5)
 
     ax.set_yticks(ticks)
-    ax.set_yticklabels(names, fontsize=7.2)
+    ax.set_yticklabels(names, fontsize=FS["name"])
     ax.tick_params(axis="y", length=0, pad=4)
     ax.set_ylim(y - 0.5, -0.6)
     ax.set_xlim(0, max(o["hi"] for o in order) * 1.06)
     ax.set_xlabel(r"Grab-point distance, $r_\perp$ and $r_P$ (m)")
-    ax.grid(True, axis="x", color=GRID, lw=0.5)
+    ax.grid(True, axis="x", color=GRID, lw=GRID_LW)
     ax.set_axisbelow(True)
     ax.spines["left"].set_visible(False)
 
@@ -126,7 +126,7 @@ def main():
         handles.append(Line2D([], [], marker=mk, ms=5.6 * TYPE_SCALE[mk], mfc=MUTED, mew=0, lw=0, label=TYPE_LABEL[mk]))
     handles += [blank] * (12 - len(handles))
     legend_top(ax, handles, 3, y=1.01)
-    fig.savefig(a.out, dpi=300)
+    save(fig, a.out)
     print(f"Saved {a.out}: {len(order)} objects in {len(blocks)} blocks")
     if missing:
         print("No r_P yet (left out):", ", ".join(missing))

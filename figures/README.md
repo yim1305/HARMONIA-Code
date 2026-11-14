@@ -1,6 +1,6 @@
 # HARMONIA figures
 
-The scripts that make figures 1 to 6 for the dataset. They read straight from the workbook and the MMT pull, so if the data changes I just rerun them and the figures update. Each one saves a 300 dpi PNG that fits a full page width (7 in) into `plots/`.
+The scripts that make figures 1 to 7 for the dataset. They read straight from the workbook and the MMT pull, so if the data changes I just rerun them and the figures update. Each one saves a 300 dpi PNG into `plots/` that is exactly 7 in wide (full page width).
 
 ## What's in this folder
 
@@ -12,20 +12,27 @@ figures/
 ├── fig4_grab_accel.py       Fig 4: rotation rate vs r⊥, with lines of equal centripetal acceleration
 ├── fig5_timeline.py         Fig 5: which years each object gave a period
 ├── fig6_detection.py        Fig 6: period found vs track length (what MMT can measure)
-├── style.py                 fonts, colors, markers, legend style, and where plots are saved
+├── fig7_accel_cdf.py        Fig 7: share of objects at or below each grab-point acceleration
+├── table1_rp_width.py       Table 1: which input sets the r⊥ width
+├── explore_trends.py        exploratory plots (plots/explore/) and the Findings and Sampling Bias numbers
+├── style.py                 fonts and font sizes, colors, markers, legend style, and how plots are saved
 ├── common.py                reads the workbook and the tracks CSV (figs 3 to 6)
 ├── left_out.py              reads the list of left-out folds (figs 2, 3, 5, 6)
+├── tables/                  CSVs of the memo tables
 └── plots/                   the current PNGs
-    └── archive/             last week's PNGs, as committed on 1 Nov 2026
+    ├── explore/             exploratory PNGs from explore_trends.py
+    └── archive/             the Week 6 PNGs, from before the 13 Nov 2026 style update
 ```
 
 ## Style
 
-All six figures follow the same rules so they look like one set in the paper:
+All seven figures follow the same rules so they look like one set in the paper:
 
-- 7 in wide (full page width), 300 dpi, STIX serif font to match the paper text.
+- Exactly 7 in wide (full page width), 300 dpi, STIX serif font to match the paper text. `save()` in `style.py` widens or narrows each figure until its tight crop is 7 in, so every PNG prints its text at the same size when they are placed at the same width.
+- One set of font sizes, `FS` in `style.py`: axis labels 9 pt, tick labels 7.5, panel titles 8, legend 7, object names down the side (figs 1 and 5) 7, labels and notes inside the plot 6.5, and the numbers in the fig 5 cells 5.6. No script sets its own size.
 - Legend above the plot, centered, no frame (`legend_top` in `style.py`). No titles inside the figures; that goes in the caption. Panel figures name each panel above it.
-- Same colors for scope everywhere (blue in scope, orange near scope, green out of range, gray reference), circles for satellites and triangles for rocket bodies.
+- Same colors for scope everywhere (blue in scope, orange near scope, green out of range, gray reference), circles for satellites and triangles for rocket bodies. Fig 7 doesn't split by scope, so it uses black and dark gray instead of the scope colors.
+- Grid lines are the same light gray and 0.4 pt wide (`GRID_LW`) wherever a figure has them.
 - Axis labels are "Quantity, symbol (unit)", e.g. "Rotation rate, ω (°/s)". Log axes show plain numbers and no minor ticks.
 - The gray band is always the 2 to 5 °/s range from the task sheet, and left-out folds are always hollow.
 - Figure text only describes what's shown, for a reader with no project context: no internal terms like "task sheet", "fold", "track" or "in scope". The legend says "Assumed rotation range", "Excluded period", "Light curve" and "Within mass and orbit limits" instead; the caption explains the rest.
@@ -55,6 +62,8 @@ py fig3_spin_evolution.py $wb $tr
 py fig4_grab_accel.py $wb
 py fig5_timeline.py $wb $tr
 py fig6_detection.py $wb $tr
+py fig7_accel_cdf.py $wb
+py table1_rp_width.py $wb
 ```
 
 The PNGs always go to `plots/`, wherever you run the scripts from. Add `--out path.png` to save one somewhere else.
@@ -64,6 +73,8 @@ The PNGs always go to `plots/`, wherever you run the scripts from. Add `--out pa
    - fig3 prints `TIROS-N: fit 2014-2016, 3 yearly points`.
    - fig4 prints `Measured objects: a from 8 to 708 mm/s^2` and that Cosmos 2334 was left out (it has r_P but no MMT rate yet).
    - fig6 prints a minimum of 1.21 cycles per track, 5% at 1.89.
+   - table1 prints `Main input over all 40 objects: {'CoM band': 28, 'Spin axis': 12}`.
+   - fig7 prints `measured (19): a from 8 (r_perp low) to 708 (r_perp high) mm/s^2`, `in scope only (10): r_perp high max 288` and `no period (20, upper bound, r_perp high): 1 to 15`.
 
 ## The figures
 
@@ -104,6 +115,32 @@ Which years each object gave a period in MMT, 2014 to 2025. Blue cells show that
 ### Fig 6: what MMT can measure (`fig6_detection.py` → `fig6_detection.png`)
 
 Period found against track length for every track with a period. A period only shows if at least about 1.2 cycles fit in the track, so all points sit below P = L/1.2, and 95% sit below P = L/1.9. Large dots are the last period seen before an object went quiet for 3+ years. Hollow points are left-out folds; they still count in the cycles-per-track numbers, because the question here is what MMT can detect, not whether the period is the real rotation.
+
+### Fig 7: grab-point acceleration CDF (`fig7_accel_cdf.py` → `fig7_accel_cdf.png`)
+
+The share of objects at or below each centripetal acceleration at the grab point, a = ω²r⊥. Read across from an acceleration a capture system can handle to get the share of objects it covers. Measured objects are drawn twice, at r⊥ high (solid) and r⊥ low (dashed), with the range between them shaded. Objects with no period are drawn at their detection limit with r⊥ high, so their line is an upper bound. Reference and not-intact objects are left out, as in Fig 4, which is why it shows 19 measured and 20 no-period objects. The script prints the range and percentiles used in the memo text.
+
+![fig7_accel_cdf.png](plots/fig7_accel_cdf.png)
+
+## Table 1: r⊥ width (`table1_rp_width.py` → `tables/table1_rp_width.csv`)
+
+Shows which input sets most of each object's width, r⊥ high − r⊥ low. Each input is swung over its full range while the other two stay at nominal (nominal z, nominal ring d), and the change in r⊥ is saved in meters:
+
+- Spin axis case: long axis to transverse axis, √(z² + (d/2)²) − d/2
+- CoM height band: z min to z max, √(z max² + (d/2)²) − √(z min² + (d/2)²)
+- Ring: ring min to ring max, √(z² + (d max/2)²) − √(z² + (d min/2)²), zero where the ring is known
+
+The CoM band and the ring are tested with spin about a transverse axis, since z doesn't change r⊥ for spin about the long axis. The largest swing is the main input. One row per bus family, in the same order as Fig 1. The script also prints the CoM band each Nimbus and Landsat object would have with the default band, for the memo text.
+
+## Memo numbers (`explore_trends.py`)
+
+Besides the two exploratory plots, the script prints the numbers the memo's Findings and Sampling Bias use. The rank correlations are Spearman's ρ, with tied values given their average rank. It prints five blocks:
+
+- **tau vs size:** τ of the 8 spin-down fits in Fig 3 against dry mass, mean altitude and bus height
+- **rate vs size:** latest-year rate of the 19 measured objects against dry mass and bus height
+- **objects with no period in their last 2+ years:** last year with a period, last year with any track, last rate, the detection limit of the later tracks, and whether the object was spinning down (with its Fig 3 fit extended to the last observed year), steady or speeding up, or had only one year of periods
+- **recommended bands:** how many objects (in scope, all 40) and bus geometries the memo's r⊥, rotation rate and acceleration bands cover. The bands are set at the top of the script.
+- **brightness and size:** for the 39 objects with MMT data, the number of tracks, the share of tracks with a period and the longest track, each against mean altitude, bus height and dry mass
 
 ## Detection limit
 

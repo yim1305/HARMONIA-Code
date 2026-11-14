@@ -9,7 +9,7 @@ from matplotlib.patches import Patch
 
 from common import read_master, read_tracks
 import left_out
-from style import apply_style, GROUP_COLOR, INK, MUTED, GRID, marker_for, plot_path, legend_top
+from style import FS, GRID_LW, save, apply_style, GROUP_COLOR, INK, MUTED, GRID, marker_for, plot_path, legend_top
 
 # NORAD id, years to fit. Left-out folds come from mmt_rotation/left_out_folds.csv (left_out.py).
 PANELS = [
@@ -78,17 +78,17 @@ def main():
         for y in sorted(set(x.year) - set(p.year)):
             ax.plot([y + 0.5], [1.25], marker="|", ms=4, color=MUTED, mew=0.8)
 
-        ax.set_title(o["name"], fontsize=8, color=INK, pad=2, loc="left")
-        ax.text(0.97, 0.95, txt, transform=ax.transAxes, ha="right", va="top", fontsize=6.6, color=INK)
+        ax.set_title(o["name"], fontsize=FS["panel"], color=INK, pad=2, loc="left")
+        ax.text(0.97, 0.95, txt, transform=ax.transAxes, ha="right", va="top", fontsize=FS["note"], color=INK)
         ax.set_yscale("log")
         ax.set_ylim(1.0, 150)
         ax.set_xlim(2013.6, 2026.2)
         ax.set_yticks([2, 5, 10, 20, 50, 100])
         ax.set_yticklabels(["2", "5", "10", "20", "50", "100"])
         ax.set_xticks([2015, 2020, 2025])
-        ax.grid(True, axis="y", color=GRID, lw=0.4)
+        ax.grid(True, axis="y", color=GRID, lw=GRID_LW)
         ax.set_axisbelow(True)
-        ax.tick_params(labelsize=7)
+        ax.tick_params(labelsize=FS["tick"])
         ax.minorticks_off()
 
     h = [Line2D([], [], marker="o", ms=3.6, color=MUTED, lw=0.9, label="Yearly median"),
@@ -99,10 +99,10 @@ def main():
          Line2D([], [], marker="|", ms=5, color=MUTED, lw=0, mew=0.8, label="Observed, no period found"),
          Patch(facecolor=GRID, alpha=0.9, label="Assumed rotation range, 2–5 °/s")]
     fig.tight_layout(rect=(0.03, 0.015, 1, 0.9), h_pad=0.6, w_pad=0.4)
-    fig.supylabel(r"Rotation rate, $\omega$ (°/s)", fontsize=9, x=0.005)
-    fig.supxlabel("Year of observation", fontsize=9, y=0.0)
+    fig.supylabel(r"Rotation rate, $\omega$ (°/s)", fontsize=FS["axis"], x=0.005)
+    fig.supxlabel("Year of observation", fontsize=FS["axis"], y=0.0)
     legend_top(fig, h, 3, y=0.905)
-    fig.savefig(a.out, dpi=300)
+    save(fig, a.out)
     print("Saved", a.out)
 
 

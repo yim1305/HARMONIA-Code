@@ -1,9 +1,12 @@
-"""Exploratory plots (not in the memo yet), saved to plots/explore/:
+"""Exploratory plots (not in the memo), saved to plots/explore/. The acceleration CDF that started here is now
+Figure 7 (fig7_accel_cdf.py).
 
-  explore_accel_cdf.png         share of objects a servicer could handle, against the centripetal acceleration
-                                a = omega^2 r_perp it can match (thrust per kg of servicer)
   explore_tau_vs_properties.png spin-down e-folding time tau against mass, mean altitude and bus height
   explore_rate_vs_size.png      latest-year rotation rate against mass and bus height
+
+It also prints the numbers used in the memo: the rank correlations (Spearman's rho) of tau and rate against
+size, the objects that went quiet (no period in their last 2+ years), and the brightness and size check for the
+sampling bias.
 
     py explore_trends.py ..\\..\\HARMONIA_data_v2.xlsx ..\\mmt_rotation\\data\\pull_2026-10-24\\mmt_tracks.csv
 """
@@ -14,29 +17,39 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import openpyxl
+import pandas as pd
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
 import left_out
 from common import read_master, read_tracks
 from fig3_spin_evolution import PANELS
-from style import (apply_style, GROUP_COLOR, SCOPE_LABEL, SCOPE_ORDER, TYPE_SCALE, marker_for, INK, MUTED, GRID,
+from style import (FS, GRID_LW, save, apply_style, GROUP_COLOR, SCOPE_LABEL, SCOPE_ORDER, TYPE_SCALE, marker_for, INK, MUTED, GRID,
                    PLOTS, legend_top)
 
 SHOW = ("In scope", "Near scope", "Orbit out", "Rocket body")
 LO, HI = "r⊥ low (m)", "r⊥ high (m)"
 RATE, LIM = "Rotation rate, latest year (deg/s)", "Detection limit, longest track (deg/s)"
 OUT = PLOTS / "explore"
-
-
-def accel(w_deg, r):
-    return np.radians(w_deg) ** 2 * r * 1000  # mm/s^2
+R_BAND, SLOW, FAST, A_MAX = (0.25, 3.5), (0, 6), (6, 31), 300
 
 
 def bus_size(path):
     rp = openpyxl.load_workbook(path, data_only=True)["r_P"]
     H = {rp.cell(1, c).value: c for c in range(1, rp.max_column + 1)}
     return {rp.cell(r, 3).value: rp.cell(r, H["Bus height h (m)"]).value for r in range(2, 62) if rp.cell(r, 3).value}
+
+
+def rank_corr(x, y):
+    x, y = pd.Series(x, dtype=float).reset_index(drop=True), pd.Series(y, dtype=float).reset_index(drop=True)
+    ok = x.notna() & y.notna()
+    return x[ok].rank().corr(y[ok].rank()), int(ok.sum())
+
+
+def max_track(path):
+    lc = openpyxl.load_workbook(path, data_only=True)["Light curve"]
+    H = {lc.cell(1, c).value: c for c in range(1, lc.max_column + 1)}
+    return {lc.cell(r, 3).value: lc.cell(r, H["Max track length (s)"]).value for r in range(2, 62) if lc.cell(r, 3).value}
 
 
 def scope_handles(groups):
@@ -46,58 +59,6 @@ def scope_handles(groups):
             seen.append(SCOPE_LABEL[g])
             h.append(Line2D([], [], color=GROUP_COLOR[g], lw=0, marker="o", ms=5, mew=0, label=SCOPE_LABEL[g]))
     return h
-
-
-def step_cdf(ax, values, **kw):
-    v = np.sort(np.asarray(values, float))
-    y = np.arange(1, len(v) + 1) / len(v) * 100
-    ax.step(np.r_[v[0], v], np.r_[0, y], where="post", **kw)
-
-
-def plot_cdf(M):
-    meas = M[(M["Rotation category"] == "Period measured") & M[RATE].notna()]
-    lim = M[(M["Rotation category"] == "Below detection limit") & M[LIM].notna()]
-    a_lo, a_hi = accel(meas[RATE], meas[LO]), accel(meas[RATE], meas[HI])
-    l_hi = accel(lim[LIM], lim[HI])
-
-    apply_style()
-    fig, ax = plt.subplots(figsize=(7.0, 3.8))
-    ax.set_xscale("log")
-    # shade between the two r_perp cases
-    grid = np.geomspace(1, 1500, 400)
-    f_lo = [(a_lo <= g).mean() * 100 for g in grid]
-    f_hi = [(a_hi <= g).mean() * 100 for g in grid]
-    ax.fill_between(grid, f_hi, f_lo, color=GROUP_COLOR["In scope"], alpha=0.12, lw=0, step="post")
-    step_cdf(ax, a_lo, color=GROUP_COLOR["In scope"], lw=1.2, ls=(0, (3, 2)))
-    step_cdf(ax, a_hi, color=GROUP_COLOR["In scope"], lw=1.4)
-    step_cdf(ax, l_hi, color=MUTED, lw=1.2)
-    ax.set_xlim(1, 1500)
-    ax.set_ylim(0, 102)
-    ax.set_xticks([1, 3, 10, 30, 100, 300, 1000])
-    ax.set_xticklabels(["1", "3", "10", "30", "100", "300", "1000"])
-    ax.minorticks_off()
-    ax.set_xlabel(r"Centripetal acceleration at the grab point, $a=\omega^2 r_\perp$ (mm/s²)")
-    ax.set_ylabel("Objects at or below a (%)")
-    ax.grid(True, color=GRID, lw=0.4)
-    ax.set_axisbelow(True)
-    h = [Line2D([], [], color=GROUP_COLOR["In scope"], lw=1.4,
-                label=rf"Measured period, $r_{{\perp,\mathrm{{high}}}}$ ({len(meas)} objects)"),
-         Line2D([], [], color=GROUP_COLOR["In scope"], lw=1.2, ls=(0, (3, 2)),
-                label=r"Measured period, $r_{\perp,\mathrm{low}}$"),
-         Patch(facecolor=GROUP_COLOR["In scope"], alpha=0.12, label=r"Range between the two $r_\perp$ cases"),
-         Line2D([], [], color=MUTED, lw=1.2,
-                label=rf"No period detected, upper bound at $r_{{\perp,\mathrm{{high}}}}$ ({len(lim)} objects)")]
-    legend_top(ax, h, 2)
-    fig.savefig(OUT / "explore_accel_cdf.png", dpi=300)
-    plt.close(fig)
-
-    print("\n[1] a = w^2 r_perp (mm/s^2)")
-    for q in (50, 80, 90, 100):
-        print(f"  measured: {q:3d}% of objects need at most {np.percentile(a_lo, q):6.0f} (r_perp low) "
-              f"to {np.percentile(a_hi, q):6.0f} (r_perp high)")
-    print(f"  no period (upper bound, r_perp high): {l_hi.min():.0f} to {l_hi.max():.0f}, median {np.median(l_hi):.0f}")
-    ins = meas["Dataset group"] == "In scope"
-    print(f"  in scope only ({ins.sum()}): r_perp high max {a_hi[ins].max():.0f}, median {np.median(a_hi[ins]):.0f}")
 
 
 def fit_taus(M, t):
@@ -130,22 +91,22 @@ def plot_tau(M, t):
             hollow = f["n"] < 4
             ax.plot(f[k], f["tau"], marker="o", ms=5, lw=0, mfc="white" if hollow else col, mec=col, mew=1.0)
         ax.set_xlabel(lab)
-        ax.grid(True, color=GRID, lw=0.4)
+        ax.grid(True, color=GRID, lw=GRID_LW)
         ax.set_axisbelow(True)
     axs[0].set_ylabel(r"Spin-down time, $\tau$ (years)")
     axs[0].set_ylim(0, 7.5)
     for f in F:  # name each point once, on the altitude panel, where they spread out most
         axs[1].annotate(f["name"].replace("DMSP 5D-2 ", "DMSP "), (f["alt"], f["tau"]), xytext=(4, 2),
-                        textcoords="offset points", fontsize=6.2, color=INK)
+                        textcoords="offset points", fontsize=FS["note"], color=INK)
     h = scope_handles({f["group"] for f in F})
     h.append(Line2D([], [], color=MUTED, lw=0, marker="o", ms=5, mfc="white", mew=1.0,
                     label="Fit on fewer than 4 yearly points"))
     fig.tight_layout(rect=(0, 0, 1, 0.85), w_pad=0.6)
     legend_top(fig, h, 3, y=0.86)
-    fig.savefig(OUT / "explore_tau_vs_properties.png", dpi=300)
+    save(fig, OUT / "explore_tau_vs_properties.png")
     plt.close(fig)
 
-    print("\n[5] tau fits")
+    print("\ntau vs size")
     for f in sorted(F, key=lambda f: f["tau"]):
         print(f"  {f['name']:<14} tau {f['tau']:4.1f} yr  n={f['n']:2d}  {f['family']:<30} mass {f['mass']:5.0f}  "
               f"alt {f['alt']:5.0f}  h {f['h']}")
@@ -153,8 +114,8 @@ def plot_tau(M, t):
     print(f"  {len(F)} fits from {len(fams)} bus families; "
           f"{sum(f['family'] == 'TIROS-N/ATN' for f in F)} are TIROS-N/ATN")
     for k in ("mass", "alt", "h"):
-        x = np.array([f[k] for f in F], float); y = np.array([f["tau"] for f in F])
-        print(f"  Spearman-style rank correlation tau vs {k}: {np.corrcoef(np.argsort(np.argsort(x)), np.argsort(np.argsort(y)))[0, 1]:+.2f}")
+        rho, n = rank_corr([f[k] for f in F], [f["tau"] for f in F])
+        print(f"  rank correlation tau vs {k}: {rho:+.2f} (n={n})")
 
 
 def plot_rate(M):
@@ -180,7 +141,7 @@ def plot_rate(M):
         ax.set_yticklabels(["1", "2", "5", "10", "20", "40"])
         ax.minorticks_off()
         ax.set_ylim(1, 45)
-        ax.grid(True, color=GRID, lw=0.4)
+        ax.grid(True, color=GRID, lw=GRID_LW)
         ax.set_axisbelow(True)
     axs[0].set_ylabel(r"Rotation rate, $\omega$ (°/s)")
     h = scope_handles(set(meas["Dataset group"]) | set(lim["Dataset group"]))
@@ -190,18 +151,86 @@ def plot_rate(M):
           Patch(facecolor=GRID, alpha=0.9, label="Assumed rotation range, 2–5 °/s")]
     fig.tight_layout(rect=(0, 0, 1, 0.84), w_pad=0.8)
     legend_top(fig, h, 3, y=0.85)
-    fig.savefig(OUT / "explore_rate_vs_size.png", dpi=300)
+    save(fig, OUT / "explore_rate_vs_size.png")
     plt.close(fig)
 
-    print("\n[6] rate vs size (measured objects)")
+    print("\nrate vs size (measured objects)")
     for k in ("Dry mass (kg)", "h"):
-        x, y = meas[k].astype(float).to_numpy(), meas[RATE].astype(float).to_numpy()
-        ok = ~np.isnan(x)
-        rx, ry = np.argsort(np.argsort(x[ok])), np.argsort(np.argsort(y[ok]))
-        print(f"  rank correlation rate vs {k}: {np.corrcoef(rx, ry)[0, 1]:+.2f} (n={ok.sum()})")
-    ys = meas["Years since end of life"].astype(float).to_numpy()
-    rx, ry = np.argsort(np.argsort(ys)), np.argsort(np.argsort(meas[RATE].astype(float).to_numpy()))
-    print(f"  for comparison, rate vs years since end of life: {np.corrcoef(rx, ry)[0, 1]:+.2f}")
+        rho, n = rank_corr(meas[k], meas[RATE])
+        print(f"  rank correlation rate vs {k}: {rho:+.2f} (n={n})")
+    rho, _ = rank_corr(meas["Years since end of life"], meas[RATE])
+    print(f"  for comparison, rate vs years since end of life: {rho:+.2f}")
+
+
+def quiet(M, t):
+    taus = {f["nid"]: f["tau"] for f in fit_taus(M, t)}
+    meas = M[(M["Rotation category"] == "Period measured") & M[RATE].notna()]
+    print("\nobjects with no period in their last 2+ years")
+    groups = {}
+    for _, o in meas.iterrows():
+        x = t[t.norad_id == o["NORAD ID"]]
+        last_p, last_t = x[x.has_period].year.max(), x.year.max()
+        if last_t - last_p < 2:
+            continue
+        kept = x[x.has_period & ~x.left_out]
+        yearly = 360 / kept.groupby("year").period_s.median()
+        limit = 1.2 * 360 / x[x.year > last_p].track_length_s.max()
+        tau = taus.get(o["NORAD ID"])
+        extra = ""
+        if len(yearly) == 1:
+            trend = "one year of periods"
+        elif tau:
+            trend = "spinning down"
+            now = yearly.iloc[-1] * np.exp(-(last_t - yearly.index[-1]) / tau)
+            extra = f", fit extended to {last_t}: {now:.1f} deg/s"
+        else:
+            trend = "steady or speeding up"
+        groups.setdefault(trend, []).append(o["name"])
+        print(f"  {o['name']:<14} last period {last_p}, last track {last_t} ({last_t - last_p} yr), "
+              f"last rate {yearly.iloc[-1]:4.1f} deg/s, limit of later tracks {limit:.1f} deg/s, {trend}{extra}")
+    n = sum(len(v) for v in groups.values())
+    print(f"  {n} of {len(meas)} measured objects")
+    for k, v in groups.items():
+        print(f"  {k}: {', '.join(v)}")
+
+
+def recommend(M):
+    meas = (M["Rotation category"] == "Period measured") & M[RATE].notna()
+    lim = (M["Rotation category"] == "Below detection limit") & M[LIM].notna()
+    ins = M["Dataset group"] == "In scope"
+    r_ok = M[LO].between(*R_BAND) & M[HI].between(*R_BAND)
+    w_ok = (meas & M[RATE].between(*FAST)) | (lim & M[LIM].between(*SLOW))
+    a = np.radians(M[RATE].where(meas, M[LIM])) ** 2 * M[HI] * 1000
+    a_ok = a.notna() & (a <= A_MAX)
+    geo = lambda ok: f"{int(ok.groupby(M['Bus family']).all().sum())} of {M['Bus family'].nunique()} bus geometries"
+    print(f"\nrecommended bands")
+    print(f"  r_perp {R_BAND[0]} to {R_BAND[1]} m (whole low-to-high line): {int(r_ok[ins].sum())} of {int(ins.sum())} in scope, "
+          f"{int(r_ok.sum())} of {len(M)} objects, {geo(r_ok)}; outside: {', '.join(M[~r_ok]['name'])}")
+    print(f"  rate {SLOW[0]} to {SLOW[1]} deg/s (no period): {int((lim & w_ok).sum())} of {int(lim.sum())}; "
+          f"{FAST[0]} to {FAST[1]} deg/s (measured): {int((meas & w_ok).sum())} of {int(meas.sum())} "
+          f"({int((meas & w_ok & ins).sum())} of {int((meas & ins).sum())} in scope)")
+    print(f"  rate, both cases: {int(w_ok[ins].sum())} of {int(ins.sum())} in scope, {int(w_ok.sum())} of {len(M)} objects, "
+          f"{geo(w_ok)}; not covered: {', '.join(M[~w_ok]['name'])}")
+    print(f"  a <= {A_MAX} mm/s^2 at r_perp high: {int((a_ok & meas & ins).sum())} of {int((meas & ins).sum())} in-scope measured, "
+          f"{int((a_ok & meas).sum())} of {int(meas.sum())} measured, {int((a_ok & lim).sum())} of {int(lim.sum())} no period, "
+          f"{geo(a_ok)}; above: {', '.join(M[meas & ~a_ok]['name'])}")
+
+
+def selection(M, path):
+    D = M[M["MMT tracks with a period / total"].notna()].copy()
+    split = D["MMT tracks with a period / total"].str.split("/", expand=True).astype(int)
+    D["tracks"], D["share"] = split[1], split[0] / split[1]
+    D["Lmax"] = D["NORAD ID"].map(max_track(path)).astype(float)
+    D["alt"] = (D["Perigee (km)"].astype(float) + D["Apogee (km)"].astype(float)) / 2
+    print("\nbrightness and size (objects with MMT data)")
+    for yk, yl in (("tracks", "tracks"), ("share", "share of tracks with a period"), ("Lmax", "longest track")):
+        for xk, xl in (("alt", "mean altitude"), ("h", "bus height"), ("Dry mass (kg)", "dry mass")):
+            rho, n = rank_corr(D[xk], D[yk])
+            print(f"  rank correlation {yl} vs {xl}: {rho:+.2f} (n={n})")
+    meas = D[D["Rotation category"] == "Period measured"]
+    none = D[D["Rotation category"] == "Below detection limit"]
+    print(f"  {len(none)} of {len(D)} objects have no period; median tracks {meas.tracks.median():.0f} (measured) and "
+          f"{none.tracks.median():.0f} (no period); median longest track {meas.Lmax.median():.0f} s and {none.Lmax.median():.0f} s")
 
 
 def main():
@@ -216,9 +245,11 @@ def main():
     M["h"] = M["NORAD ID"].map(sizes).astype(float)
     M = M[M["Dataset group"].isin(SHOW)].copy()
     t = left_out.mark(read_tracks(a.tracks), a.left_out)
-    plot_cdf(M)
     plot_tau(M, t)
     plot_rate(M)
+    quiet(M, t)
+    recommend(M)
+    selection(M, a.workbook)
     print("\nSaved to", OUT)
 
 

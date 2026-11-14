@@ -13,7 +13,7 @@ from matplotlib.legend_handler import HandlerTuple
 from matplotlib.patches import Patch
 
 import left_out
-from style import apply_style, GROUP_COLOR, SCOPE_LABEL, SCOPE_ORDER, TYPE_LABEL, TYPE_SCALE, marker_for, INK, MUTED, GRID, plot_path, legend_top
+from style import FS, GRID_LW, save, apply_style, GROUP_COLOR, SCOPE_LABEL, SCOPE_ORDER, TYPE_LABEL, TYPE_SCALE, marker_for, INK, MUTED, GRID, plot_path, legend_top
 
 TASK_BAND = (2.0, 5.0)  # deg/s from the task sheet
 # A period only shows when at least 1.2 cycles fit in a track (smallest in the pull: 1.21, Fig 6), so the
@@ -24,7 +24,7 @@ CYCLES_TYPICAL = 1.9
 SHOW = ("In scope", "Near scope", "Orbit out", "Rocket body", "Reference (out of scope)")
 BASELINE = 0.8
 DROP = 1.32
-LABEL_FS = 6.4
+LABEL_FS = FS["note"]
 
 
 def headers(ws, row):
@@ -189,7 +189,7 @@ def draw(objs, t, out, part="all", xlim=(-1, 58), ylim=(0.26, 115), notes=()):
                         right = hx > xlim[0] + 0.6 * (xlim[1] - xlim[0])
                         obstacles.append(ax.annotate(f"{o['name']} {note}", (hx, hy),
                                                      xytext=(-6 if right else 5, 4), textcoords="offset points",
-                                                     fontsize=6.2, color=MUTED, va="bottom",
+                                                     fontsize=FS["note"], color=MUTED, va="bottom",
                                                      ha="right" if right else "left"))
             vis = np.where((xs >= xlim[0]) & (xs <= xlim[1]))[0]
             if len(vis):
@@ -238,7 +238,7 @@ def draw(objs, t, out, part="all", xlim=(-1, 58), ylim=(0.26, 115), notes=()):
     ax.minorticks_off()
     ax.set_xlabel("Years since end of life")
     ax.set_ylabel(r"Rotation rate, $\omega$ (°/s)")
-    ax.grid(True, which="major", axis="y", color=GRID, lw=0.5)
+    ax.grid(True, which="major", axis="y", color=GRID, lw=GRID_LW)
     ax.set_axisbelow(True)
 
     shown = [o for o in objs.values() if o["group"] in SHOW]
@@ -273,7 +273,7 @@ def draw(objs, t, out, part="all", xlim=(-1, 58), ylim=(0.26, 115), notes=()):
     legend_top(ax, handles, 4 if part == "all" else 3, labels=labels,
                handler_map={tuple: HandlerTuple(ndivide=None, pad=0.1)})
     place_line_labels(fig, ax, line_lab, obstacles)
-    fig.savefig(out, dpi=300)
+    save(fig, out)
     plt.close(fig)
     print(f"Saved {out}")
 

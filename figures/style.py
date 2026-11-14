@@ -41,12 +41,30 @@ def marker_for(obj_type):
     return TYPE_MARKER.get(obj_type, "o")
 
 
+# One set of font sizes (pt) for every figure. Every PNG is saved exactly FIG_WIDTH wide (see save), so a
+# size here prints the same in every figure when they are placed at the same width in the memo or paper.
+FIG_WIDTH = 7.0
+FS = {
+    "axis": 9.0,    # axis labels
+    "tick": 7.5,    # tick labels
+    "legend": 7.0,  # legend text
+    "panel": 8.0,   # panel titles: (a), (b), object names in fig 3
+    "name": 7.0,    # object names and block labels down the side of figs 1 and 5
+    "note": 6.5,    # labels and notes inside the plot area
+    "cell": 5.6,    # numbers inside the fig 5 cells
+}
+GRID_LW = 0.4
+
+
 def apply_style():
     mpl.rcParams.update({
         "font.family": "STIXGeneral",
         "mathtext.fontset": "stix",
-        "font.size": 8.5,
-        "axes.labelsize": 9,
+        "font.size": FS["tick"],
+        "axes.labelsize": FS["axis"],
+        "axes.titlesize": FS["panel"],
+        "xtick.labelsize": FS["tick"],
+        "ytick.labelsize": FS["tick"],
         "axes.edgecolor": MUTED,
         "axes.linewidth": 0.6,
         "axes.labelcolor": INK,
@@ -68,7 +86,7 @@ def apply_style():
 
 
 # One legend style for every figure: above the plot, no frame, same font and spacing.
-LEGEND_FS = 7.0
+LEGEND_FS = FS["legend"]
 
 
 def legend_top(target, handles, ncol, labels=None, y=1.02, **kw):
@@ -80,3 +98,20 @@ def legend_top(target, handles, ncol, labels=None, y=1.02, **kw):
         return target.legend(handles=handles, labels=labels, **opts)
     return target.legend(handles=handles, **opts)
 
+
+
+def save(fig, out, width=FIG_WIDTH, dpi=300):
+    """Save with a tight crop that comes out exactly `width` inches wide.
+
+    The figure is widened or narrowed until its tight bounding box (legend and labels included) is `width`
+    wide, so every PNG has the same width and the same font scale.
+    """
+    pad = mpl.rcParams["savefig.pad_inches"]
+    for _ in range(6):
+        fig.canvas.draw()
+        w = fig.get_tightbbox(fig.canvas.get_renderer()).width + 2 * pad
+        if abs(w - width) < 0.002:
+            break
+        W, H = fig.get_size_inches()
+        fig.set_size_inches(W + (width - w), H)
+    fig.savefig(out, dpi=dpi, bbox_inches="tight", pad_inches=pad)

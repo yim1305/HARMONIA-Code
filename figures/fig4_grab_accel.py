@@ -16,14 +16,14 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
 from common import read_master
-from style import apply_style, GROUP_COLOR, SCOPE_LABEL, SCOPE_ORDER, TYPE_SCALE, marker_for, MUTED, GRID, INK, plot_path, legend_top
+from style import FS, GRID_LW, save, apply_style, GROUP_COLOR, SCOPE_LABEL, SCOPE_ORDER, TYPE_SCALE, marker_for, MUTED, GRID, INK, plot_path, legend_top
 from fig2_rate import CYCLES, spread
 
 SHOW = ("In scope", "Near scope", "Orbit out", "Rocket body")
 ACCELS = [1, 3, 10, 30, 100, 300, 1000]  # mm/s^2
 BAND = (2.0, 5.0)
 XL = (0.25, 4.5)
-LABEL_FS = 6.4  # same as the object labels in figs 2 and 6
+LABEL_FS = FS["note"]  # same as the object labels in figs 2 and 6
 LO, HI = "r⊥ low (m)", "r⊥ high (m)"
 SPIN = "Likely spin state (from moments of inertia)"
 
@@ -96,9 +96,9 @@ def draw_panel(fig, ax, M, ylim, yticks, tag):
     ax.set_yticks(yticks)
     ax.set_yticklabels([f"{v:g}" for v in yticks])
     ax.minorticks_off()
-    ax.grid(True, color=GRID, lw=0.4)
+    ax.grid(True, color=GRID, lw=GRID_LW)
     ax.set_axisbelow(True)
-    ax.set_title(tag, loc="left", fontsize=8, color=INK, pad=3)
+    ax.set_title(tag, loc="left", fontsize=FS["panel"], color=INK, pad=3)
 
 
 def main():
@@ -123,7 +123,7 @@ def main():
     bot.set_xticks([0.3, 0.5, 1, 2, 3, 4])
     bot.set_xticklabels(["0.3", "0.5", "1", "2", "3", "4"])
     bot.set_xlabel(r"Distance from the spin axis to the grab point, $r_\perp$ (m)")
-    fig.supylabel(r"Rotation rate, $\omega$ (°/s)", fontsize=9, x=0.035)
+    fig.supylabel(r"Rotation rate, $\omega$ (°/s)", fontsize=FS["axis"], x=0.035)
 
     k = dict(lw=0, mew=0.9)
     h = [Line2D([], [], color=MUTED, lw=1.2, marker="o", ms=3.8, mfc="white", mec=MUTED, mew=0.9,
@@ -140,7 +140,7 @@ def main():
             h.append(Line2D([], [], color=GROUP_COLOR[g], lw=1.6, label=SCOPE_LABEL[g]))
     h.append(Line2D([], [], marker="^", ms=3.8 * 1.15, mfc="white", mec=MUTED, label="Rocket body", **k))
     legend_top(top, h, 2, y=1.08)
-    fig.savefig(a.out, dpi=300)
+    save(fig, a.out)
     print("Saved", a.out)
 
     # a = omega^2 r_perp for the memo (mm/s^2), measured objects only

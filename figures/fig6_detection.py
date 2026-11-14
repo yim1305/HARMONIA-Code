@@ -8,9 +8,9 @@ from matplotlib.lines import Line2D
 
 from common import read_master, read_tracks
 import left_out
-from style import apply_style, GROUP_COLOR, MUTED, GRID, plot_path, legend_top
+from style import FS, GRID_LW, save, apply_style, GROUP_COLOR, MUTED, GRID, plot_path, legend_top
 import fig2_rate
-fig2_rate.LABEL_FS = 6.4
+fig2_rate.LABEL_FS = FS["note"]
 from fig2_rate import place_line_labels
 
 
@@ -36,7 +36,7 @@ def main():
     ax.fill_between(L, L / 1.2, 200, color=GRID, alpha=0.55, lw=0, zorder=0)
     for k, ls in ((1.2, "-"), (1.9, (0, (3, 2)))):
         ax.plot(L, L / k, color=MUTED, lw=0.7, ls=ls, zorder=1)
-    ax.text(11, 80, "Not measurable:\nfewer than 1.2 cycles\nfit in the light curve", fontsize=6.8, color=MUTED,
+    ax.text(11, 80, "Not measurable:\nfewer than 1.2 cycles\nfit in the light curve", fontsize=FS["note"], color=MUTED,
             ha="left", va="top")
     for nid, g in p.groupby("norad_id"):
         col = GROUP_COLOR.get(M.loc[nid, "Dataset group"], MUTED)
@@ -63,7 +63,7 @@ def main():
     ax.minorticks_off()
     ax.set_xlabel("Light-curve length, $L$ (s)")
     ax.set_ylabel("Measured period, $P$ (s)")
-    ax.grid(True, color=GRID, lw=0.4)
+    ax.grid(True, color=GRID, lw=GRID_LW)
     ax.set_axisbelow(True)
     place_line_labels(fig, ax, quiet, list(ax.texts))
     h = [Line2D([], [], marker="o", ms=3, color=MUTED, alpha=0.5, lw=0, label="Light curve with a period"),
@@ -72,7 +72,7 @@ def main():
          Line2D([], [], color=MUTED, lw=0.7, label="$P = L/1.2$ (fewest cycles found)"),
          Line2D([], [], color=MUTED, lw=0.7, ls=(0, (3, 2)), label="$P = L/1.9$ (95% of periods lie below)")]
     legend_top(ax, h, 2)
-    fig.savefig(a.out, dpi=300)
+    save(fig, a.out)
     print("Saved", a.out)
     # all folds count here: the question is what MMT can detect, not whether the period is the real rotation
     c = p.track_length_s / p.period_s

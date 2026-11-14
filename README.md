@@ -6,7 +6,7 @@ Code for the HARMONIA target dataset (UF Space Systems Group): defunct satellite
 |---|---|---|
 | [`week1_orbit_transfers`](week1_orbit_transfers/README.md) | Week 1: Hohmann transfer ΔV and HCW relative motion plots | MATLAB R2020a+ |
 | [`mmt_rotation`](mmt_rotation/README.md) | Gets rotation rates from MMT light curves, plots the folds for the factor-of-2 check, and copies the results into the workbook | Python 3 |
-| [`figures`](figures/README.md) | Makes the dataset figures 1 to 6 | Python 3 |
+| [`figures`](figures/README.md) | Makes the dataset figures 1 to 7 | Python 3 |
 
 ```
 HARMONIA Code/
@@ -24,7 +24,9 @@ HARMONIA Code/
 │   ├── archive/               old script versions
 │   └── data/                  one folder per pull
 └── figures/
-    ├── fig1_rp.py ... fig6_detection.py
+    ├── fig1_rp.py ... fig7_accel_cdf.py
+    ├── table1_rp_width.py     Table 1 (saved to tables/)
+    ├── explore_trends.py      exploratory plots, not in the memo
     ├── style.py, common.py, left_out.py
     └── plots/                 the PNGs
         └── archive/           last week's PNGs
@@ -57,4 +59,4 @@ py fig1_rp.py ..\..\HARMONIA_data_v2.xlsx
 py fig2_rate.py ..\..\HARMONIA_data_v2.xlsx ..\mmt_rotation\data\pull_2026-10-24\mmt_tracks.csv
 ```
 
-PNGs go to `figures/plots/`. The commands for all six figures are in [`figures/README.md`](figures/README.md).
+PNGs go to `figures/plots/`. The commands for all seven figures are in [`figures/README.md`](figures/README.md).

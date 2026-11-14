@@ -9,7 +9,7 @@ from matplotlib.patches import Patch, Rectangle
 
 from common import read_master, read_tracks
 import left_out
-from style import apply_style, INK, GRID, MUTED, plot_path, legend_top
+from style import FS, GRID_LW, save, apply_style, INK, GRID, MUTED, plot_path, legend_top
 
 SHOW = ("In scope", "Near scope", "Orbit out", "Rocket body", "Reference (out of scope)", "Not intact")
 FAMILY_ORDER = ["Nimbus/Landsat (sensory ring)", "TIROS-N/ATN", "DMSP Block 5D-2", "IRS-1 bus", "PROTEUS", "FY-1"]
@@ -40,7 +40,7 @@ def main():
     fig, ax = plt.subplots(figsize=(7.0, 0.142 * (len(M) + len(blocks)) + 0.9))
     y, ticks, names = 0, [], []
     for b in blocks:
-        ax.text(-0.02, y, b, transform=ax.get_yaxis_transform(), ha="right", va="center", fontsize=6.8,
+        ax.text(-0.02, y, b, transform=ax.get_yaxis_transform(), ha="right", va="center", fontsize=FS["name"],
                 style="italic", color=INK)
         y += 1
         for _, o in M[M.block == b].sort_values("Launch year").iterrows():
@@ -58,14 +58,14 @@ def main():
                     # every fold this year is on the left-out list: outlined cell, no rate
                     ax.add_patch(Rectangle((i - 0.42, y - 0.38), 0.84, 0.76, facecolor="white", edgecolor=RAMP[3],
                                            lw=0.6))
-                    ax.text(i, y, "–", ha="center", va="center", fontsize=5.6, color=MUTED)
+                    ax.text(i, y, "–", ha="center", va="center", fontsize=FS["cell"], color=MUTED)
                     continue
                 r = 360 / kept.period_s.median()
                 c = cmap(norm(np.clip(r, 5, 100)))
                 ax.add_patch(Rectangle((i - 0.46, y - 0.42), 0.92, 0.84, color=c, lw=0))
                 lum = 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
                 star = "*" if pp.left_out.any() else ""
-                ax.text(i, y, f"{r:.0f}{star}", ha="center", va="center", fontsize=5.6,
+                ax.text(i, y, f"{r:.0f}{star}", ha="center", va="center", fontsize=FS["cell"],
                         color="white" if lum < 0.5 else INK)
             ticks.append(y)
             names.append(f"{o['name']}  {100 * x.has_period.mean():.0f}%")
@@ -74,10 +74,10 @@ def main():
     ax.set_xlim(-0.6, len(YEARS) - 0.4)
     ax.set_ylim(y - 0.5, -0.6)
     ax.set_xticks(range(len(YEARS)))
-    ax.set_xticklabels([str(v) for v in YEARS], fontsize=7)
+    ax.set_xticklabels([str(v) for v in YEARS], fontsize=FS["tick"])
     ax.xaxis.tick_top()
     ax.set_yticks(ticks)
-    ax.set_yticklabels(names, fontsize=6.6)
+    ax.set_yticklabels(names, fontsize=FS["name"])
     ax.tick_params(length=0)
     for s in ax.spines.values():
         s.set_visible(False)
@@ -89,7 +89,7 @@ def main():
          Patch(facecolor="none", edgecolor="none", label="% after name: share of light curves with a period")]
     legend_top(ax, h, 3, y=1.0 + 0.32 / fig.get_figheight(),
               handlelength=1.2, columnspacing=1.2)
-    fig.savefig(a.out, dpi=300)
+    save(fig, a.out)
     print("Saved", a.out)
 
 
