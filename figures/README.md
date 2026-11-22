@@ -14,7 +14,7 @@ figures/
 ├── fig6_detection.py        Fig 6: period found vs track length (what MMT can measure)
 ├── fig7_accel_cdf.py        Fig 7: share of objects at or below each grab-point acceleration
 ├── table1_rp_width.py       Table 1: which input sets the r⊥ width
-├── explore_trends.py        exploratory plots (plots/explore/) and the Findings and Sampling Bias numbers
+├── explore_trends.py        exploratory plots (plots/explore/) and the Trends, Sampling Bias and Recommendation numbers
 ├── style.py                 fonts and font sizes, colors, markers, legend style, and how plots are saved
 ├── common.py                reads the workbook and the tracks CSV (figs 3 to 6)
 ├── left_out.py              reads the list of left-out folds (figs 2, 3, 5, 6)
@@ -106,7 +106,7 @@ Spin rate over time for the 12 objects with several years of periods, one panel 
 
 Rotation rate against r⊥, in two panels with the same x-axis: (a) objects with a measured period, at their latest-year rate, and (b) objects with no period, at their detection limit with an arrow down. Each object is a line from r⊥ low to r⊥ high, and the ring marks the likely spin state, as in Fig 1. Names sit in a column on the right, joined to the end of each line by a faint leader, so no label covers the data.
 
-The dotted lines are equal centripetal acceleration, a = ω²r⊥, at 1, 3, 10, 30, 100, 300 and 1000 mm/s². A servicer holding station beside the grab point needs a thrust of (its mass) × ω²r⊥, so each line is a thrust per kg of servicer. The script prints a for every measured object (8 to 708 mm/s²).
+The dotted lines are equal centripetal acceleration, a = ω²r⊥, at 1, 3, 10, 30, 100, 300 and 1000 mm/s². A servicer holding station beside the grab point needs a thrust of at least (its mass) × ω²r⊥, so each line is a thrust per kg of servicer. The script prints a for every measured object (8 to 708 mm/s²).
 
 ### Fig 5: timeline (`fig5_timeline.py` → `fig5_timeline.png`)
 
@@ -118,7 +118,7 @@ Period found against track length for every track with a period. A period only s
 
 ### Fig 7: grab-point acceleration CDF (`fig7_accel_cdf.py` → `fig7_accel_cdf.png`)
 
-The share of objects at or below each centripetal acceleration at the grab point, a = ω²r⊥. Read across from an acceleration a capture system can handle to get the share of objects it covers. Measured objects are drawn twice, at r⊥ high (solid) and r⊥ low (dashed), with the range between them shaded. Objects with no period are drawn at their detection limit with r⊥ high, so their line is an upper bound. Reference and not-intact objects are left out, as in Fig 4, which is why it shows 19 measured and 20 no-period objects. The script prints the range and percentiles used in the memo text.
+The share of objects at or below each centripetal acceleration at the grab point, a = ω²r⊥. Read across from the acceleration a servicer can sustain to get the share of objects it can stay beside. Measured objects are drawn twice, at r⊥ high (solid) and r⊥ low (dashed), with the range between them shaded. Objects with no period are drawn at their detection limit with r⊥ high, so their line is an upper bound. Reference and not-intact objects are left out, as in Fig 4, which is why it shows 19 measured and 20 no-period objects. The script prints the range and percentiles used in the memo text.
 
 ![fig7_accel_cdf.png](plots/fig7_accel_cdf.png)
 
@@ -134,12 +134,12 @@ The CoM band and the ring are tested with spin about a transverse axis, since z 
 
 ## Memo numbers (`explore_trends.py`)
 
-Besides the two exploratory plots, the script prints the numbers the memo's Findings and Sampling Bias use. The rank correlations are Spearman's ρ, with tied values given their average rank. It prints five blocks:
+Besides the two exploratory plots, the script prints the numbers the memo's Trends, Sampling Bias and Recommendation use. The rank correlations are Spearman's ρ, with tied values given their average rank. It prints five blocks:
 
 - **tau vs size:** τ of the 8 spin-down fits in Fig 3 against dry mass, mean altitude and bus height
 - **rate vs size:** latest-year rate of the 19 measured objects against dry mass and bus height
-- **objects with no period in their last 2+ years:** last year with a period, last year with any track, last rate, the detection limit of the later tracks, and whether the object was spinning down (with its Fig 3 fit extended to the last observed year), steady or speeding up, or had only one year of periods
-- **recommended bands:** how many objects (in scope, all 40) and bus geometries the memo's r⊥, rotation rate and acceleration bands cover. The bands are set at the top of the script.
+- **objects with no period in their last 2+ years:** last year with a period, last year with any track, last rate, the detection limit of the later tracks, and whether the object was spinning down (with its Fig 3 fit extended to the last observed year), steady or speeding up, or had only one year of periods. It then groups them: slowed below the limit (the fit, or the last rate if there is no fit, ends below the limit), went quiet while still measurable (it ends above the limit), or one year of periods
+- **recommended bands:** how many objects (in scope, all 40) and bus geometries the memo's r⊥ and rotation rate bands cover, and how many objects are at or below each acceleration level in Table 2 (15, 100, 300 and 710 mm/s² at r⊥ high), with the measured objects listed from lowest to highest a. The bands (`R_BAND`, `SLOW`, `FAST`) and levels (`A_LEVELS`) are set at the top of the script.
 - **brightness and size:** for the 39 objects with MMT data, the number of tracks, the share of tracks with a period and the longest track, each against mean altitude, bus height and dry mass
 
 ## Detection limit

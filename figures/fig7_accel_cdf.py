@@ -1,7 +1,7 @@
 """Fig 7: share of objects at or below each centripetal acceleration at the grab point, a = w^2 r_perp.
 
-A servicer holding position beside the grab point needs a thrust of its mass times a, so this reads as the
-share of objects a capture system rated for a given a could handle. Measured objects are drawn for both
+A servicer holding position beside the grab point needs a thrust of at least its mass times a, so this reads as the
+share of objects a servicer that can sustain a given a could stay beside. Measured objects are drawn for both
 r_perp cases (low and high); objects with no period are drawn at their upper limit with r_perp high.
 Reference and not-intact objects are left out (same objects as Figure 4).
 

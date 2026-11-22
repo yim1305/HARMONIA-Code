@@ -31,7 +31,8 @@ SHOW = ("In scope", "Near scope", "Orbit out", "Rocket body")
 LO, HI = "r⊥ low (m)", "r⊥ high (m)"
 RATE, LIM = "Rotation rate, latest year (deg/s)", "Detection limit, longest track (deg/s)"
 OUT = PLOTS / "explore"
-R_BAND, SLOW, FAST, A_MAX = (0.25, 3.5), (0, 6), (6, 31), 300
+R_BAND, SLOW, FAST = (0.29, 3.42), (0, 6), (6, 31)
+A_LEVELS = (15, 100, 300, 710)
 
 
 def bus_size(path):
@@ -177,6 +178,7 @@ def quiet(M, t):
         limit = 1.2 * 360 / x[x.year > last_p].track_length_s.max()
         tau = taus.get(o["NORAD ID"])
         extra = ""
+        now = yearly.iloc[-1]
         if len(yearly) == 1:
             trend = "one year of periods"
         elif tau:
@@ -185,7 +187,13 @@ def quiet(M, t):
             extra = f", fit extended to {last_t}: {now:.1f} deg/s"
         else:
             trend = "steady or speeding up"
-        groups.setdefault(trend, []).append(o["name"])
+        if len(yearly) == 1:
+            group = "one year of periods"
+        elif now < limit:
+            group = "slowed below the limit"
+        else:
+            group = "went quiet while still measurable"
+        groups.setdefault(group, []).append(o["name"])
         print(f"  {o['name']:<14} last period {last_p}, last track {last_t} ({last_t - last_p} yr), "
               f"last rate {yearly.iloc[-1]:4.1f} deg/s, limit of later tracks {limit:.1f} deg/s, {trend}{extra}")
     n = sum(len(v) for v in groups.values())
@@ -201,7 +209,7 @@ def recommend(M):
     r_ok = M[LO].between(*R_BAND) & M[HI].between(*R_BAND)
     w_ok = (meas & M[RATE].between(*FAST)) | (lim & M[LIM].between(*SLOW))
     a = np.radians(M[RATE].where(meas, M[LIM])) ** 2 * M[HI] * 1000
-    a_ok = a.notna() & (a <= A_MAX)
+    mmt = meas | lim
     geo = lambda ok: f"{int(ok.groupby(M['Bus family']).all().sum())} of {M['Bus family'].nunique()} bus geometries"
     print(f"\nrecommended bands")
     print(f"  r_perp {R_BAND[0]} to {R_BAND[1]} m (whole low-to-high line): {int(r_ok[ins].sum())} of {int(ins.sum())} in scope, "
@@ -211,9 +219,16 @@ def recommend(M):
           f"({int((meas & w_ok & ins).sum())} of {int((meas & ins).sum())} in scope)")
     print(f"  rate, both cases: {int(w_ok[ins].sum())} of {int(ins.sum())} in scope, {int(w_ok.sum())} of {len(M)} objects, "
           f"{geo(w_ok)}; not covered: {', '.join(M[~w_ok]['name'])}")
-    print(f"  a <= {A_MAX} mm/s^2 at r_perp high: {int((a_ok & meas & ins).sum())} of {int((meas & ins).sum())} in-scope measured, "
-          f"{int((a_ok & meas).sum())} of {int(meas.sum())} measured, {int((a_ok & lim).sum())} of {int(lim.sum())} no period, "
-          f"{geo(a_ok)}; above: {', '.join(M[meas & ~a_ok]['name'])}")
+    print("  a at r_perp high, objects at or below each level:")
+    for lev in A_LEVELS:
+        a_ok = a.notna() & (a <= lev)
+        print(f"    {lev:>3} mm/s^2: {int((a_ok & meas & ins).sum())} of {int((meas & ins).sum())} in-scope measured, "
+              f"{int((a_ok & meas).sum())} of {int(meas.sum())} measured, {int((a_ok & lim).sum())} of {int(lim.sum())} no period, "
+              f"{int((a_ok & mmt).sum())} of {int(mmt.sum())} with MMT data, {geo(a_ok)}; "
+              f"above: {', '.join(M[meas & ~a_ok]['name']) or 'none'}")
+    order = a[meas].sort_values()
+    print("  measured objects, lowest a first: " + ", ".join(f"{M.loc[i, 'name']} {v:.0f}" for i, v in order.items()))
+    print(f"  highest no-period a: {a[lim].max():.0f} mm/s^2")
 
 
 def selection(M, path):

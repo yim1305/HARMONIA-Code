@@ -27,7 +27,7 @@ PANELS = [
     (22076, (2014, 2022)),  # TOPEX
 ]
 MIN_FIT = 4  # fits with fewer yearly points than this are drawn lighter and marked "indicative"
-NOTE = {16969: "spin-up from 2021", 22739: "accelerating spin-down", 13923: "slowed 2017–18, then spun up",
+NOTE = {16969: "spin-up from 2021", 22739: "accelerating spin-down,\nthen slight rise", 13923: "slowed 2017–18, then spun up",
         11080: "spinning up", 22076: "spin-up, then flat"}
 BAND = (2.0, 5.0)
 

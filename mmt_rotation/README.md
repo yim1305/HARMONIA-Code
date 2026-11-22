@@ -99,6 +99,9 @@ own; it overrides `--summary`.
 
 `mmt_tracks.csv` (one row per track): `norad_id`, `name`, `date`, `year`, `period_s`, `deg_per_s`,
 `has_period`, `track_length_s`, `n_points`, `pulled_utc`, `snapshot_revision`, `snapshot_last_modified`.
+In every pull the snapshot left `name` blank for tracks from 2024 and 2025 (169 in the 24 Oct pull and 28
+in the other pulls). These names are filled in from each object's other tracks. Every script matches
+tracks on `norad_id`, not `name`.
 
 `mmt_summary.csv` (one row per object): track counts (total, with and without a period), first and
 last track date, `last_track_year`, track length median/min/max, `latest_year`,

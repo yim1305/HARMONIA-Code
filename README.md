@@ -26,7 +26,7 @@ HARMONIA Code/
 └── figures/
     ├── fig1_rp.py ... fig7_accel_cdf.py
     ├── table1_rp_width.py     Table 1 (saved to tables/)
-    ├── explore_trends.py      exploratory plots, not in the memo
+    ├── explore_trends.py      exploratory plots and the memo's Trends, Sampling Bias and Recommendation numbers
     ├── style.py, common.py, left_out.py
     └── plots/                 the PNGs
         └── archive/           last week's PNGs
